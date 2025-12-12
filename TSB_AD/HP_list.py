@@ -84,7 +84,26 @@ Multi_algo_HP_dict = {
     },
     'OFA': {
         'win_size': [50, 100, 150]
-    }
+    },
+    'Chronos2Ada': {
+        'context_length': [96, 512],
+        'warmup': [50, 1000],
+        'quantile_low': [0.01, 0.05],
+        'alpha': [0.95, 0.99],
+        'err_multiplier': [2.0],
+        'max_history': [2000, 10000],
+        'skip_anomaly_updates': [True],
+    },
+    'Sub_Chronos2Ada': {
+        'periodicity': [1],
+        'per_history': [100, 1000],
+        'per_context': [3, 10, 100],
+        'warmup': [50],
+        'quantile_low': [0.01],
+        'alpha': [0.99],
+        'err_multiplier': [2.0],
+        'skip_anomaly_updates': [True],
+    },
 }
 
 
@@ -225,12 +244,22 @@ Uni_algo_HP_dict = {
         'win_size': [50, 100, 150]
     },
     'Chronos2Ada': {
-        'context_length': [256, 1024],
-        'warmup': [ 50, 100, 1000],
+        'context_length': [96, 256, 512],
+        'warmup': [ 50, 1000],
         'quantile_low': [0.01, 0.05],
         'alpha': [0.95, 0.99],
         'err_multiplier': [2.0],
         'max_history': [1000,2000,5000],
+        'skip_anomaly_updates': [True],
+    },
+    'Sub_Chronos2Ada': {
+        'periodicity': [1],
+        'per_history': [100,1000],
+        'per_context': [3,10,100],
+        'warmup': [50],
+        'quantile_low': [0.01],
+        'alpha': [0.99],
+        'err_multiplier': [2.0],
         'skip_anomaly_updates': [True],
     },
     'TimesFM': {
@@ -278,14 +307,23 @@ Optimal_Uni_algo_HP_dict = {
     'Lag_Llama': {'win_size': 96},
     'Chronos': {'win_size': 100},
     'Chronos2Ada': {
-        'context_length': 1024,
-        'warmup': 100,
+        'context_length': 96,
+        'warmup': 1000,
         'quantile_low': 0.01,
         'alpha': 0.99,
         'err_multiplier': 2.0,
-        'error_agg': 'mean',
-        'max_history': 5000,
-        'skip_anomaly_updates': True,
+        'max_history': 2000,
+        'skip_anomaly_updates': True
+    },
+    'Sub_Chronos2Ada': {
+        'periodicity': 1,
+        'per_history': 100,
+        'per_context': 10,
+        'warmup': 50,
+        'quantile_low': 0.01,
+        'alpha': 0.99,
+        'err_multiplier': 2.0,
+        'skip_anomaly_updates': True
     },
     'TimesFM': {'win_size': 96},
     'MOMENT_ZS': {'win_size': 64},

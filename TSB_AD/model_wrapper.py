@@ -5,7 +5,7 @@ from .utils.slidingWindows import find_length_rank
 Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IForest', 'LOF', 'Sub_LOF', 'POLY',
                        'MatrixProfile', 'Sub_PCA', 'PCA', 'HBOS',
                        'Sub_HBOS', 'KNN', 'Sub_KNN', 'KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF',
-                       'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'Chronos2Ada', 'MOMENT_ZS']
+                       'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'Chronos2Ada', 'Sub_Chronos2Ada', 'MOMENT_ZS']
 Semisupervise_AD_Pool = ['Left_STAMPi', 'SAND', 'MCD', 'Sub_MCD', 'OCSVM', 'Sub_OCSVM', 'AutoEncoder', 'CNN', 'LSTMAD',
                          'TranAD', 'USAD', 'OmniAnomaly',
                          'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2']
@@ -408,6 +408,70 @@ def run_Chronos(data, win_size=50, batch_size=64):
     from .models.Chronos import Chronos
     clf = Chronos(win_size=win_size, prediction_length=1, input_c=data.shape[1], model_size='base',
                   batch_size=batch_size)
+    clf.fit(data)
+    score = clf.decision_scores_
+    return score.ravel()
+
+
+def run_Sub_Chronos2Ada(data, periodicity=1,
+                        per_history=5,
+                        per_context=5,
+                        context_length=None,
+                        prediction_length=1,
+                        warmup=50,
+                        quantile_low=0.01,
+                        quantile_mid=0.5,
+                        quantile_high=0.99,
+                        alpha: float = 0.99,
+                        err_multiplier: float = 2.0,
+                        error_agg="mean",  # one of: mean, median, mode, pXX (e.g., p95)
+                        skip_anomaly_updates: bool = False,
+                        ):
+    print(f'Hyperparameters: periodicity={periodicity}, per_history={per_history},per_context={per_context}, context_length={context_length}, prediction_length={prediction_length}, warmup={warmup}, quantile_low={quantile_low}, quantile_mid={quantile_mid}, quantile_high={quantile_high}, alpha={alpha}, err_multiplier={err_multiplier}, error_agg={error_agg}, skip_anomaly_updates={skip_anomaly_updates}')
+    from .models.Chronos2Ada import Chronos2Ada
+    CHRONOS2_MAX_CONTEXT_LENGTH = 2048
+    CHRONOS2_MIN_CONTEXT_LENGTH = 10
+    
+    data = np.asarray(data)
+    data_length = len(data)
+    
+    slidingWindow = find_length_rank(data, rank=periodicity)
+    
+    # Ensure slidingWindow is at least 1 to avoid zero context_length
+    if slidingWindow <= 0:
+        slidingWindow = 125  # fallback to default
+    
+    periodic_length = slidingWindow * per_history
+    if context_length is None:
+        # Ensure context_length fits within data and reasonable bounds
+        max_context = min(data_length - prediction_length - 1, CHRONOS2_MAX_CONTEXT_LENGTH)
+        context_length = min(max(slidingWindow*per_context, CHRONOS2_MIN_CONTEXT_LENGTH), max_context)
+    else:
+        # Ensure user-provided context_length is valid
+        max_context = min(data_length - prediction_length - 1, CHRONOS2_MAX_CONTEXT_LENGTH)
+        context_length = min(max(context_length, CHRONOS2_MIN_CONTEXT_LENGTH), max_context)
+    
+    # Final validation
+    if context_length < CHRONOS2_MIN_CONTEXT_LENGTH:
+        raise ValueError(
+            f"Data too short ({data_length} points). Need at least {CHRONOS2_MIN_CONTEXT_LENGTH + prediction_length + 1} points."
+        )
+    
+    print(f"Sub_Chronos2Ada: periodic_length={periodic_length}, context_length={context_length}, slidingWindow={slidingWindow}")
+    clf = Chronos2Ada(
+        context_length=context_length,
+        prediction_length=prediction_length,
+        warmup=warmup,
+        model_name="amazon/chronos-2",
+        quantile_low=quantile_low,
+        quantile_mid=quantile_mid,
+        quantile_high=quantile_high,
+        alpha=alpha,
+        err_multiplier=err_multiplier,
+        max_history=periodic_length,
+        error_agg=error_agg,
+        skip_anomaly_updates=skip_anomaly_updates
+    )
     clf.fit(data)
     score = clf.decision_scores_
     return score.ravel()

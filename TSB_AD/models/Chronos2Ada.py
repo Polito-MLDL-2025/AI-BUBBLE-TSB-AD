@@ -1,10 +1,8 @@
 
-import inspect
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
-import pandas as pd
+from typing import Dict, Iterable, Optional, Sequence, Tuple
 import numpy as np
 import torch
-from chronos import Chronos2Pipeline
+from chronos import BaseChronosPipeline, Chronos2Pipeline
 from tqdm import tqdm
 from dataclasses import dataclass
 from .base import BaseDetector
@@ -105,10 +103,9 @@ class Chronos2Ada(BaseDetector):
         """
         Chronos2 model for anomaly detection using iterative bin-based forecasting.
 
-        All sizes are ratios of the total series length (not fixed windows). The model
-        predicts bins of size ``bin_ratio * n`` starting after an initial
-        ``first_bin_ratio * n`` warmup while conditioning on the previous
-        ``context_ratio * n`` timesteps.
+        Supports multivariate time series where each channel maintains its own 
+        width and error history. The final anomaly score for each step is the 
+        max score across all channels.
         """
         super().__init__(contamination=0.1)
 
@@ -130,7 +127,7 @@ class Chronos2Ada(BaseDetector):
         else:
             self.device = device
 
-        self.pipeline = Chronos2Pipeline.from_pretrained(
+        self.pipeline: Chronos2Pipeline = BaseChronosPipeline.from_pretrained(
             self.model_name,
             device_map=self.device,
             torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
@@ -143,7 +140,7 @@ class Chronos2Ada(BaseDetector):
             warmup=warmup,
             quantile_low=quantile_low,
             quantile_mid=quantile_mid,
-            quantile_high=quantile_high,
+            quantile_high=self.quantile_high,
             alpha=alpha,
             err_multiplier=err_multiplier,
             error_agg=error_agg,
@@ -155,23 +152,30 @@ class Chronos2Ada(BaseDetector):
         self.config = cfg
 
     def fit(self, data):
-        # Handle 2D input by taking first column
-        if len(data.shape) == 2:
-            data = data[:, 0]
+        data = np.asarray(data)
+        # Handle 1D input by converting to 2D (n_points, 1)
+        if data.ndim == 1:
+            data = data.reshape(-1, 1)
+        
+        # Validate we have enough data points
+        if len(data) <= self.context_length:
+            raise ValueError(
+                f"Data length ({len(data)}) must be greater than context_length ({self.context_length}). "
+                f"Consider reducing context_length or using more data."
+            )
         
         quantile_levels = sorted({self.quantile_low, self.quantile_mid, self.quantile_high})
         available_quantiles = getattr(self.pipeline, "quantiles", None)
         quantile_index_map = None
         if available_quantiles is not None:
             quantile_index_map = _resolve_quantile_indices(available_quantiles, quantile_levels)
-            # Inform if approximated quantiles differ from requested
             for requested, (_, actual) in quantile_index_map.items():
                 if abs(requested - actual) > 1e-6:
                     print(
                         f"WARN: Requested quantile {requested} not available. Using nearest available {actual}."
                     )
 
-        scores, details = _compute_scores_for_series(
+        scores = _compute_scores_multivariate(
             data,
             self.pipeline,
             self.config,
@@ -179,7 +183,6 @@ class Chronos2Ada(BaseDetector):
             quantile_index_map,
             progress=True,
         )
-        is_anomaly_pred = (np.nan_to_num(scores, nan=0.0) > 1.0).astype(int)
         self.decision_scores_ = scores
 
         return self
@@ -199,31 +202,131 @@ def _resolve_quantile_indices(
         mapping[q] = (idx, float(avail_arr[idx]))
     return mapping
 
-def _resolve_tensor_dtype(dtype_option) -> torch.dtype:
-    """Convert a user-provided dtype option into a torch dtype."""
 
-    if isinstance(dtype_option, torch.dtype):
-        return dtype_option
-    if isinstance(dtype_option, str) and hasattr(torch, dtype_option):
+def _compute_scores_multivariate(
+    values: np.ndarray,
+    pipeline: Chronos2Pipeline,
+    config: ChronosADConfig,
+    quantile_levels: Sequence[float],
+    quantile_index_map: Optional[Dict[float, Tuple[int, float]]],
+    *,
+    progress: bool,
+) -> np.ndarray:
+    """
+    Compute anomaly scores for multivariate time series.
+    
+    Each channel maintains its own width and error history.
+    Final score for each timestep is the max score across all channels.
+    
+    Args:
+        values: shape (n_points, n_channels)
+        pipeline: Chronos2Pipeline instance
+        config: ChronosADConfig with detection parameters
+        quantile_levels: quantiles to compute
+        quantile_index_map: mapping from desired quantiles to available indices
+        progress: whether to show progress bar
+        
+    Returns:
+        scores: shape (n_points,) - max score across channels for each timestep
+    """
+    n_points, n_channels = values.shape
+    if n_points <= config.context_length:
+        raise ValueError("Not enough data: context_length must be smaller than series length.")
+
+    n_steps = n_points - config.context_length
+    
+    # Build context array: shape (n_steps, n_channels, context_length)
+    # For each step, we take context_length points across all channels
+    context_list = []
+    for i in range(n_steps):
+        # shape: (n_channels, context_length) - transpose from (context_length, n_channels)
+        context_slice = values[i : i + config.context_length, :].T
+        context_list.append(context_slice)
+    
+    # Shape: (n_steps, n_channels, context_length)
+    context_array = np.stack(context_list, axis=0)
+    
+    # Call predict_quantiles for all steps at once
+    # Input shape: (batch_size, n_variates, history_length) = (n_steps, n_channels, context_length)
+    # Output quantiles: list of tensors, each shape (n_variates, prediction_length, n_quantiles)
+    # Output mean: list of tensors, each shape (n_variates, prediction_length)
+    quantiles_list, mean_list = pipeline.predict_quantiles(
+        context_array,
+        prediction_length=config.prediction_length,
+        quantile_levels=quantile_levels,
+    )
+    
+    # Initialize per-channel rolling buffers
+    buffer_capacity = config.max_history or max(n_points, 1)
+    width_histories = [RollingBuffer(buffer_capacity) for _ in range(n_channels)]
+    error_histories = [RollingBuffer(buffer_capacity) for _ in range(n_channels)]
+    
+    # Scores per channel
+    channel_scores = np.zeros((n_points, n_channels), dtype=float)
+    safe_width_prev = [None] * n_channels
+
+    iterator: Iterable[int] = range(n_steps)
+    if progress:
         try:
-            return getattr(torch, dtype_option)
-        except Exception:
+            from tqdm import tqdm
+            iterator = tqdm(iterator, total=n_steps)
+        except ModuleNotFoundError:
             pass
-    return torch.float32
 
+    # Map quantile levels to indices
+    q_low_level = config.quantile_low
+    q_mid_level = config.quantile_mid
+    q_high_level = config.quantile_high
+    
+    # Find indices in quantile_levels list
+    q_low_idx = quantile_levels.index(q_low_level)
+    q_mid_idx = quantile_levels.index(q_mid_level)
+    q_high_idx = quantile_levels.index(q_high_level)
 
+    for step_idx in iterator:
+        idx = config.context_length + step_idx
+        
+        # quantiles_list[step_idx] has shape (n_channels, prediction_length, n_quantiles)
+        pred_quantiles = quantiles_list[step_idx]
+        if isinstance(pred_quantiles, torch.Tensor):
+            pred_quantiles = pred_quantiles.detach().cpu().numpy()
+        
+        for ch in range(n_channels):
+            # Get quantiles for this channel at horizon 0
+            # pred_quantiles shape: (n_channels, prediction_length, n_quantiles)
+            q_lo = float(pred_quantiles[ch, 0, q_low_idx])
+            q_mid = float(pred_quantiles[ch, 0, q_mid_idx])
+            q_hi = float(pred_quantiles[ch, 0, q_high_idx])
+            
+            width_t = float(q_hi - q_lo)
+            err_t = float(abs(values[idx, ch] - q_mid))
+            
+            safe_width_t = None
+            if width_histories[ch].size >= config.warmup:
+                safe_width_t = float(
+                    width_histories[ch].quantile(config.alpha)
+                    + config.err_multiplier * error_histories[ch].aggregate(config.error_agg)
+                )
+            
+            used_safe_width = safe_width_t if safe_width_t is not None else safe_width_prev[ch]
+            
+            anomaly_score = (
+                float(max(width_t, err_t) / (used_safe_width + 1e-8)) if used_safe_width else 0.0
+            )
+            channel_scores[idx, ch] = anomaly_score
+            
+            is_anomaly = used_safe_width is not None and (width_t > used_safe_width or err_t > used_safe_width)
+            
+            if not (config.skip_anomaly_updates and is_anomaly):
+                width_histories[ch].append(width_t)
+                error_histories[ch].append(err_t)
+            
+            safe_width_prev[ch] = used_safe_width if used_safe_width is not None else safe_width_prev[ch]
 
-def _call_predict(pipeline, context, config: ChronosADConfig):
-    """Call predict with only the supported arguments to avoid Chronos kwargs errors."""
+    # Final score is max across channels
+    scores = np.max(channel_scores, axis=1)
+    return scores
 
-    candidate_kwargs = {
-        "prediction_length": config.prediction_length,
-        "limit_prediction_length": config.limit_prediction_length,
-        "context_length": config.context_length,
-    }
-    signature = inspect.signature(pipeline.predict)
-    kwargs = {k: v for k, v in candidate_kwargs.items() if k in signature.parameters}
-    return pipeline.predict(context, **kwargs)
 
 def _compute_scores_for_series(
     values: np.ndarray,
@@ -234,177 +337,17 @@ def _compute_scores_for_series(
     *,
     progress: bool,
 ) -> Tuple[np.ndarray, Optional[Dict[str, np.ndarray]]]:
-    """Compute anomaly scores for a single channel (optionally returning quantile details)."""
-
-    n_points = len(values)
-    if n_points <= config.context_length:
-        raise ValueError("Not enough data: context_length must be smaller than series length.")
-
-    n_steps = n_points - config.context_length
-    context_slices = [values[i : i + config.context_length] for i in range(n_steps)]
-    context_array = np.stack(context_slices, axis=0)
-    tensor_dtype = _resolve_tensor_dtype(config.dtype)
-    contexts = torch.tensor(context_array, dtype=tensor_dtype, device="cpu").unsqueeze(1)
-
-    predictions = _call_predict(pipeline, contexts, config)
-
-    buffer_capacity = config.max_history or max(n_points, 1)
-    width_history = RollingBuffer(buffer_capacity)
-    error_history = RollingBuffer(buffer_capacity)
-    scores = np.zeros(n_points, dtype=float)
-    details: Optional[Dict[str, np.ndarray]] = {
-        "q_low": np.full(n_points, np.nan, dtype=float),
-        "q_mid": np.full(n_points, np.nan, dtype=float),
-        "q_high": np.full(n_points, np.nan, dtype=float),
-        "quantile_width": np.full(n_points, np.nan, dtype=float),
-        "point_error": np.full(n_points, np.nan, dtype=float),
-        "safe_width": np.full(n_points, np.nan, dtype=float),
-    }
-
-    iterator: Iterable[int] = range(n_steps)
-    if progress:
-        try:
-            from tqdm import tqdm
-
-            iterator = tqdm(iterator, total=n_steps)
-        except ModuleNotFoundError:
-            pass
-
-    safe_width_prev: Optional[float] = None
-    for step_idx in iterator:
-        idx = config.context_length + step_idx
-        prediction = predictions[step_idx]
-        quantiles = _to_quantiles(prediction, quantile_levels, quantile_index_map, horizon=0)
-
-        q_lo = quantiles.get(config.quantile_low)
-        q_hi = quantiles.get(config.quantile_high)
-        q_mid = quantiles.get(config.quantile_mid)
-
-        if q_lo is None or q_hi is None or q_mid is None:
-            raise RuntimeError("Model output did not provide required quantiles.")
-
-        width_t = float(q_hi - q_lo)
-        err_t = float(abs(values[idx] - q_mid))
-        safe_width_t = None
-        if width_history.size >= config.warmup:
-            safe_width_t = float(
-                width_history.quantile(config.alpha)
-                + config.err_multiplier * error_history.aggregate(config.error_agg)
-            )
-
-        used_safe_width = safe_width_t if safe_width_t is not None else safe_width_prev
-
-        anomaly_score = (
-            float(max(width_t, err_t) / (used_safe_width + 1e-8)) if used_safe_width else 0.0
-        )
-        scores[idx] = anomaly_score
-        if details is not None:
-            details["q_low"][idx] = q_lo
-            details["q_mid"][idx] = q_mid
-            details["q_high"][idx] = q_hi
-            details["quantile_width"][idx] = width_t
-            details["point_error"][idx] = err_t
-            details["safe_width"][idx] = used_safe_width if used_safe_width is not None else np.nan
-
-        is_anomaly = used_safe_width is not None and (width_t > used_safe_width or err_t > used_safe_width)
-
-        if not (config.skip_anomaly_updates and is_anomaly):
-            width_history.append(width_t)
-            error_history.append(err_t)
-        safe_width_prev = used_safe_width if used_safe_width is not None else safe_width_prev
-
-    return scores, details
-
-
-
-def _to_quantiles(
-    prediction,
-    quantile_levels: Sequence[float],
-    quantile_index_map: Optional[Dict[float, Tuple[int, float]]],
-    horizon: int = 0,
-) -> Dict[float, float]:
-    """Compute quantiles for the requested horizon from model output."""
-
-    tensor_quantiles = _extract_quantiles_from_tensor(
-        prediction, quantile_levels, quantile_index_map, horizon
+    """Compute anomaly scores for a single channel (legacy univariate method)."""
+    # Convert to multivariate format and use new implementation
+    if values.ndim == 1:
+        values = values.reshape(-1, 1)
+    
+    scores = _compute_scores_multivariate(
+        values,
+        pipeline,
+        config,
+        quantile_levels,
+        quantile_index_map,
+        progress=progress,
     )
-    if tensor_quantiles is not None:
-        return tensor_quantiles
-
-    if isinstance(prediction, dict):
-        quantiles: Dict[float, float] = {}
-        for q in quantile_levels:
-            key_options = {q, str(q), f"{q:.2f}", f"{q:.3f}"}
-            matched = None
-            for key in key_options:
-                if key in prediction:
-                    matched = prediction[key]
-                    break
-            if matched is None:
-                continue
-            arr = np.asarray(matched)
-            quantiles[q] = float(arr[horizon] if arr.ndim > 0 else arr.item())
-        if len(quantiles) == len(quantile_levels):
-            return quantiles
-
-    # Fallback: treat as samples and compute quantiles
-    samples = _prediction_to_samples(prediction)
-    quantiles = {q: float(np.quantile(samples[:, horizon], q)) for q in quantile_levels}
-    return quantiles
-
-
-def _extract_quantiles_from_tensor(
-    prediction,
-    quantile_levels: Sequence[float],
-    quantile_index_map: Optional[Dict[float, Tuple[int, float]]],
-    horizon: int,
-) -> Optional[Dict[float, float]]:
-    """Handle Chronos-2 outputs: list of tensors shaped (n_var, n_quantiles, pred_len)."""
-
-    tensor = None
-    if isinstance(prediction, list) and len(prediction) > 0:
-        tensor = prediction[0]
-    elif isinstance(prediction, torch.Tensor) or isinstance(prediction, np.ndarray):
-        tensor = prediction
-
-    if tensor is None:
-        return None
-
-    if isinstance(tensor, torch.Tensor):
-        arr = tensor.detach().cpu().numpy()
-    else:
-        arr = np.asarray(tensor)
-
-    if arr.ndim == 3:
-        arr = arr[0]  # first variate
-    if arr.ndim == 2 and quantile_index_map:
-        return {q: float(arr[idx, horizon]) for q, (idx, _) in quantile_index_map.items()}
-    return None
-
-
-
-def _prediction_to_samples(prediction) -> np.ndarray:
-    """Normalize model output to an array of shape (num_samples, prediction_length)."""
-
-    if hasattr(prediction, "samples"):
-        arr = np.asarray(prediction.samples)
-    elif isinstance(prediction, torch.Tensor):
-        arr = prediction.detach().cpu().numpy()
-    else:
-        arr = np.asarray(prediction)
-
-    if arr.ndim == 3:
-        # common Chronos shape: (batch, num_samples, prediction_length)
-        if arr.shape[0] == 1:
-            arr = arr[0]
-        elif arr.shape[1] == 1:
-            arr = arr[:, 0, :]
-        else:
-            arr = arr.reshape(arr.shape[0] * arr.shape[1], arr.shape[2])
-    elif arr.ndim == 1:
-        arr = arr.reshape(1, -1)
-
-    if arr.ndim != 2:
-        raise ValueError(f"Unexpected prediction shape: {arr.shape}")
-
-    return arr
+    return scores, None
