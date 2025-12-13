@@ -1,6 +1,17 @@
+from tqdm import tqdm
+
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import DataLoader
+
 from chronos import BaseChronosPipeline
+
+from .base import BaseDetector
+from ..utils.dataset import TSDataset
+from ..utils.dataset import ReconstructDataset
+from ..utils.torch_utility import get_gpu
 
 class VAEHead(nn.Module):
     """
@@ -98,14 +109,13 @@ class ChronosAnomalyModel(nn.Module):
     """
     def __init__(self, pipeline=None, head_type='vae', latent_dim=32, device=None):
         super().__init__()
-        if pipeline:
-            self.pipeline = pipeline
-        else:
-            self.pipeline = BaseChronosPipeline.from_pretrained(
+        if not pipeline:
+            pipeline = BaseChronosPipeline.from_pretrained(
                 "amazon/chronos-2", 
                 device_map=device, 
                 dtype=torch.float32
             )
+        self.pipeline = pipeline
         self.model = pipeline.model
         
         # Freeze backbone
@@ -173,3 +183,156 @@ class ChronosAnomalyModel(nn.Module):
         recon, mu, logvar = self.head(combined_input)  # recon shape: [B*V, Patches, Dim]
         
         return recon, mu, logvar, combined_input
+
+class Chronos2AE(BaseDetector):
+    def __init__(self, 
+                 slidingWindow=100,
+                 head_type='ae',
+                 latent_dim=32,
+                 batch_size=32,
+                 lr=1e-3,
+                 epochs=10,
+                 validation_size=0.2):
+        super().__init__()
+        self.__anomaly_score = None
+
+        self.cuda = True
+        self.device = get_gpu(self.cuda)
+        
+        self.window_size = slidingWindow
+        self.head_type = head_type
+        self.latent_dim = latent_dim
+        self.batch_size = batch_size
+        self.lr = lr
+        self.epochs = epochs
+        self.validation_size = validation_size
+
+        self.model = ChronosAnomalyModel(
+            head_type=self.head_type,
+            latent_dim=self.latent_dim,
+            device=self.device
+        )
+
+    def fit(self, data):
+        
+        tsTrain = data[:int((1-self.validation_size)*len(data))]
+        tsValid = data[int((1-self.validation_size)*len(data)):]
+
+        # Initialize Datasets and DataLoaders
+        train_loader = DataLoader(
+            dataset=ReconstructDataset(tsTrain, window_size=self.window_size),
+            batch_size=self.batch_size,
+            shuffle=True
+        )
+        
+        val_loader = DataLoader(
+            dataset=ReconstructDataset(tsValid, window_size=self.window_size),
+            batch_size=self.batch_size,
+            shuffle=False
+        )
+        
+        self.model = ChronosAnomalyModel(head_type=self.head_type, latent_dim=self.latent_dim).to(self.device)
+        
+        # Optimizer
+        optimizer = optim.Adam(self.model.head.parameters(), lr=self.lr)
+        
+        # Training Loop
+        self.model.train()
+        # Use tqdm for the epoch loop to show progress and loss evolution
+        epoch_pbar = tqdm(range(self.epochs), desc="Training Progress", unit="epoch")
+        
+        for epoch in epoch_pbar:
+            total_loss = 0
+            for batch, _ in train_loader:
+                
+                # ! Chronos2 expect batch to be 3 dimensional, debug later when running
+                # batch_data: [B, D, T] or [B, T]
+                
+                # batch = torch.as_tensor(batch)
+                if batch.dim() == 2: # If a univariated was sent reshape it
+                    batch = batch.unsqueeze(1) # [B, 1, T]
+                batch = batch.to(self.device)
+                
+                # Forward
+                recon, mu, logvar, target = self.model(batch)
+                
+                # ! Chronos2 expect MSE as done in the lab, debug later when running
+                # Loss Calculation
+                loss = self.criterion(recon, target, mu, logvar)
+                
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                
+                total_loss += loss.item()
+
+            avg_loss = total_loss / len(train_loader.dataset)
+
+            # Validation every 5 epochs
+            val_info = ""
+            if (epoch + 1) % 5 == 0:
+                model.eval()
+                val_loss = 0
+                with torch.no_grad():
+                    for batch in val_loader:
+                        # ! Chronos2 expect batch to be 3 dimensional, debug later when running
+                        if batch.dim() == 2: # If a univariated was sent reshape it
+                            batch = batch.unsqueeze(1) # [B, 1, T]
+                        batch = batch.to(device)
+                        recn, mu, logvar, original_embeddings = model(batch)
+                        loss = self.criterion(recon, original_embeddings, mu, logvar)
+                        val_loss += loss.item()
+                avg_val_loss = val_loss / len(val_loader.dataset)
+                val_info = f" | Val Loss: {avg_val_loss:.4f}"
+                tqdm.write(f"Epoch {epoch+1}: Train Loss: {avg_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
+                model.train()
+
+            # Update the progress bar description with the current loss
+            epoch_pbar.set_description(f"Training {self.head_type.upper()} | Epoch {epoch+1}/{self.epochs} | Avg Loss: {avg_loss:.4f} | Validation Info: {val_info}")
+
+            # TODO: early stopping
+
+        return self
+    
+    def validate(self, dataloader):
+        model.eval()
+        val_loss = 0
+        with torch.no_grad():
+            for batch in val_loader:
+                # ! Chronos2 expect batch to be 3 dimensional, debug later when running
+                # batch_data: [B, D, T] or [B, T]
+                if batch.dim() == 2: # If a univariated was sent reshape it
+                    batch = batch.unsqueeze(1) # [B, 1, T]
+                batch = batch.to(self.device)
+                recon, mu, logvar, original_embeddings = model(batch)
+                loss = anomaly_loss_function(recon, original_embeddings, mu, logvar)
+                val_loss += loss.item()
+        return val_loss / len(val_loader.dataset)
+    
+    def decision_function(self, X):
+        X = torch.as_tensor(X, device=self.device)
+        if X.ndim == 2:
+            X = X.unsqueeze(1)
+        return self.model(X)
+    
+    def anomaly_score(self, ):
+        pass
+
+    def criterion(self, recon_x, x, mu=None, logvar=None):
+        """
+        Computes the loss.
+        If mu and logvar are provided, computes VAE loss (Recon + KL).
+        If they are None, computes AE loss (Recon only).
+        """
+        recon_loss = F.mse_loss(recon_x, x, reduction='sum')
+        
+        if mu is None or logvar is None:
+            return recon_loss
+            
+        kld_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        return recon_loss + kld_loss
+    
+    def param_statistic(self, save_file):
+        model_stats = torchinfo.summary(self.model, self.input_shape, verbose=0)
+        with open(save_file, 'w') as f:
+            f.write(str(model_stats))
