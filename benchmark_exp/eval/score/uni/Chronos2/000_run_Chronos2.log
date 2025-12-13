@@ -1,0 +1,120 @@
+2025-12-13 19:27:48,542 - INFO - Success at 001_NAB_id_1_Facility_tr_1007_1st_2014.csv using Chronos2 | Time cost: 7.683s at length 4031
+2025-12-13 19:27:54,160 - INFO - Success at 002_NAB_id_2_WebService_tr_1500_1st_4106.csv using Chronos2 | Time cost: 5.566s at length 6000
+2025-12-13 19:27:58,127 - INFO - Success at 005_NAB_id_5_Traffic_tr_594_1st_1645.csv using Chronos2 | Time cost: 3.946s at length 2379
+2025-12-13 19:28:07,612 - INFO - Success at 006_NAB_id_6_Traffic_tr_2579_1st_5839.csv using Chronos2 | Time cost: 9.418s at length 10319
+2025-12-13 19:28:13,344 - INFO - Success at 008_NAB_id_8_Synthetic_tr_1007_1st_2734.csv using Chronos2 | Time cost: 5.694s at length 4031
+2025-12-13 19:28:17,227 - INFO - Success at 009_NAB_id_9_Traffic_tr_500_1st_438.csv using Chronos2 | Time cost: 3.853s at length 2161
+2025-12-13 19:28:20,326 - INFO - Success at 010_NAB_id_10_WebService_tr_500_1st_271.csv using Chronos2 | Time cost: 3.068s at length 1000
+2025-12-13 19:28:26,027 - INFO - Success at 011_NAB_id_11_Facility_tr_1007_1st_1526.csv using Chronos2 | Time cost: 5.666s at length 4031
+2025-12-13 19:28:30,778 - INFO - Success at 013_NAB_id_13_Traffic_tr_623_1st_2084.csv using Chronos2 | Time cost: 4.703s at length 2494
+2025-12-13 19:28:34,212 - INFO - Success at 014_NAB_id_14_WebService_tr_500_1st_1045.csv using Chronos2 | Time cost: 3.400s at length 1537
+2025-12-13 19:28:39,935 - INFO - Success at 015_NAB_id_15_Synthetic_tr_1007_1st_2787.csv using Chronos2 | Time cost: 5.683s at length 4031
+2025-12-13 19:28:47,866 - INFO - Success at 016_NAB_id_16_Environment_tr_1816_1st_3540.csv using Chronos2 | Time cost: 7.885s at length 7266
+2025-12-13 19:28:53,866 - INFO - Success at 017_NAB_id_17_Synthetic_tr_1007_1st_1805.csv using Chronos2 | Time cost: 5.962s at length 4031
+2025-12-13 19:28:57,693 - INFO - Success at 018_NAB_id_18_Facility_tr_500_1st_669.csv using Chronos2 | Time cost: 3.795s at length 1881
+2025-12-13 19:29:03,387 - INFO - Success at 019_NAB_id_19_Facility_tr_1007_1st_1171.csv using Chronos2 | Time cost: 5.640s at length 4031
+2025-12-13 19:30:13,105 - INFO - Success at 020_NAB_id_20_Synthetic_tr_1007_1st_2679.csv using Chronos2 | Time cost: 7.708s at length 4031
+2025-12-13 19:30:17,833 - INFO - Success at 022_NAB_id_22_Facility_tr_1007_1st_2980.csv using Chronos2 | Time cost: 4.689s at length 4031
+2025-12-13 19:30:31,137 - INFO - Success at 023_NAB_id_23_Facility_tr_4512_1st_16551.csv using Chronos2 | Time cost: 13.222s at length 18049
+2025-12-13 19:31:41,967 - INFO - Success at 001_NAB_id_1_Facility_tr_1007_1st_2014.csv using Chronos2 | Time cost: 7.354s at length 4031
+2025-12-13 19:31:48,853 - INFO - Success at 002_NAB_id_2_WebService_tr_1500_1st_4106.csv using Chronos2 | Time cost: 6.241s at length 6000
+2025-12-13 19:31:55,407 - INFO - Success at 005_NAB_id_5_Traffic_tr_594_1st_1645.csv using Chronos2 | Time cost: 4.825s at length 2379
+2025-12-13 19:32:06,488 - INFO - Success at 006_NAB_id_6_Traffic_tr_2579_1st_5839.csv using Chronos2 | Time cost: 10.276s at length 10319
+2025-12-13 19:32:15,542 - INFO - Success at 008_NAB_id_8_Synthetic_tr_1007_1st_2734.csv using Chronos2 | Time cost: 5.777s at length 4031
+2025-12-13 19:32:20,537 - INFO - Success at 009_NAB_id_9_Traffic_tr_500_1st_438.csv using Chronos2 | Time cost: 4.027s at length 2161
+2025-12-13 19:32:24,637 - INFO - Success at 010_NAB_id_10_WebService_tr_500_1st_271.csv using Chronos2 | Time cost: 3.067s at length 1000
+2025-12-13 19:32:32,106 - INFO - Success at 011_NAB_id_11_Facility_tr_1007_1st_1526.csv using Chronos2 | Time cost: 6.045s at length 4031
+2025-12-13 19:32:38,862 - INFO - Success at 013_NAB_id_13_Traffic_tr_623_1st_2084.csv using Chronos2 | Time cost: 4.957s at length 2494
+2025-12-13 19:32:44,518 - INFO - Success at 014_NAB_id_14_WebService_tr_500_1st_1045.csv using Chronos2 | Time cost: 3.756s at length 1537
+2025-12-13 19:32:51,456 - INFO - Success at 015_NAB_id_15_Synthetic_tr_1007_1st_2787.csv using Chronos2 | Time cost: 6.369s at length 4031
+2025-12-13 19:33:04,456 - INFO - Success at 016_NAB_id_16_Environment_tr_1816_1st_3540.csv using Chronos2 | Time cost: 9.246s at length 7266
+2025-12-13 19:33:12,602 - INFO - Success at 017_NAB_id_17_Synthetic_tr_1007_1st_1805.csv using Chronos2 | Time cost: 6.248s at length 4031
+2025-12-13 19:33:17,897 - INFO - Success at 018_NAB_id_18_Facility_tr_500_1st_669.csv using Chronos2 | Time cost: 4.196s at length 1881
+2025-12-13 19:33:25,790 - INFO - Success at 019_NAB_id_19_Facility_tr_1007_1st_1171.csv using Chronos2 | Time cost: 6.453s at length 4031
+2025-12-13 19:33:33,268 - INFO - Success at 020_NAB_id_20_Synthetic_tr_1007_1st_2679.csv using Chronos2 | Time cost: 6.614s at length 4031
+2025-12-13 19:33:44,185 - INFO - Success at 022_NAB_id_22_Facility_tr_1007_1st_2980.csv using Chronos2 | Time cost: 7.106s at length 4031
+2025-12-13 19:34:02,704 - INFO - Success at 023_NAB_id_23_Facility_tr_4512_1st_16551.csv using Chronos2 | Time cost: 15.866s at length 18049
+2025-12-13 19:34:11,352 - INFO - Success at 024_NAB_id_24_Synthetic_tr_1007_1st_2787.csv using Chronos2 | Time cost: 5.876s at length 4031
+2025-12-13 19:34:28,904 - INFO - Success at 025_NAB_id_25_WebService_tr_3958_1st_4614.csv using Chronos2 | Time cost: 15.292s at length 15832
+2025-12-13 19:34:35,421 - INFO - Success at 026_NAB_id_26_Traffic_tr_624_1st_2261.csv using Chronos2 | Time cost: 4.830s at length 2499
+2025-12-13 19:34:43,148 - INFO - Success at 027_NAB_id_27_Facility_tr_757_1st_2582.csv using Chronos2 | Time cost: 6.809s at length 3031
+2025-12-13 19:34:52,884 - INFO - Success at 028_NAB_id_28_Facility_tr_1007_1st_3447.csv using Chronos2 | Time cost: 7.564s at length 4031
+2025-12-13 19:35:08,306 - INFO - Success at 032_WSD_id_4_WebService_tr_4559_1st_11822.csv using Chronos2 | Time cost: 11.872s at length 10686
+2025-12-13 19:35:27,058 - INFO - Success at 039_WSD_id_11_WebService_tr_1746_1st_1846.csv using Chronos2 | Time cost: 17.249s at length 18219
+2025-12-13 19:35:47,971 - INFO - Success at 040_WSD_id_12_WebService_tr_4559_1st_9714.csv using Chronos2 | Time cost: 17.060s at length 18236
+2025-12-13 19:36:08,659 - INFO - Success at 043_WSD_id_15_WebService_tr_4521_1st_6828.csv using Chronos2 | Time cost: 16.903s at length 18085
+2025-12-13 19:36:29,026 - INFO - Success at 049_WSD_id_21_WebService_tr_4297_1st_7097.csv using Chronos2 | Time cost: 16.861s at length 17189
+2025-12-13 19:36:48,494 - INFO - Success at 054_WSD_id_26_WebService_tr_2409_1st_2509.csv using Chronos2 | Time cost: 17.390s at length 18391
+2025-12-13 19:37:09,817 - INFO - Success at 058_WSD_id_30_WebService_tr_1136_1st_1236.csv using Chronos2 | Time cost: 16.088s at length 18236
+2025-12-13 19:37:31,306 - INFO - Success at 060_WSD_id_32_WebService_tr_4576_1st_4766.csv using Chronos2 | Time cost: 17.070s at length 18305
+2025-12-13 19:37:49,711 - INFO - Success at 068_WSD_id_40_WebService_tr_4549_1st_13322.csv using Chronos2 | Time cost: 15.787s at length 18197
+2025-12-13 19:38:07,124 - INFO - Success at 074_WSD_id_46_WebService_tr_990_1st_1090.csv using Chronos2 | Time cost: 15.516s at length 18236
+2025-12-13 19:38:26,194 - INFO - Success at 089_WSD_id_61_WebService_tr_1010_1st_1110.csv using Chronos2 | Time cost: 16.230s at length 17429
+2025-12-13 19:38:53,045 - INFO - Success at 094_WSD_id_66_WebService_tr_3309_1st_3914.csv using Chronos2 | Time cost: 14.604s at length 13237
+2025-12-13 19:39:14,913 - INFO - Success at 099_WSD_id_71_WebService_tr_4559_1st_14411.csv using Chronos2 | Time cost: 17.802s at length 18236
+2025-12-13 19:39:34,414 - INFO - Success at 106_WSD_id_78_WebService_tr_3363_1st_3463.csv using Chronos2 | Time cost: 16.669s at length 18236
+2025-12-13 19:39:54,815 - INFO - Success at 113_WSD_id_85_WebService_tr_500_1st_335.csv using Chronos2 | Time cost: 16.956s at length 18242
+2025-12-13 19:40:15,028 - INFO - Success at 117_WSD_id_89_WebService_tr_3251_1st_3351.csv using Chronos2 | Time cost: 15.512s at length 16376
+2025-12-13 19:40:37,237 - INFO - Success at 125_WSD_id_97_WebService_tr_2217_1st_2317.csv using Chronos2 | Time cost: 18.197s at length 18250
+2025-12-13 19:40:59,617 - INFO - Success at 130_WSD_id_102_WebService_tr_2362_1st_2462.csv using Chronos2 | Time cost: 17.751s at length 18236
+2025-12-13 19:41:18,634 - INFO - Success at 137_WSD_id_109_WebService_tr_4559_1st_14404.csv using Chronos2 | Time cost: 16.005s at length 18236
+2025-12-13 19:41:36,562 - INFO - Success at 139_WSD_id_111_WebService_tr_1701_1st_1801.csv using Chronos2 | Time cost: 15.817s at length 18381
+2025-12-13 19:41:45,712 - INFO - Success at 140_MSL_id_1_Sensor_tr_530_1st_630.csv using Chronos2 | Time cost: 4.817s at length 2430
+2025-12-13 19:41:51,128 - INFO - Success at 141_MSL_id_2_Sensor_tr_500_1st_550.csv using Chronos2 | Time cost: 4.402s at length 2264
+2025-12-13 19:41:59,380 - INFO - Success at 143_MSL_id_4_Sensor_tr_980_1st_3550.csv using Chronos2 | Time cost: 5.729s at length 3922
+2025-12-13 19:42:09,667 - INFO - Success at 144_MSL_id_5_Sensor_tr_1525_1st_4590.csv using Chronos2 | Time cost: 8.563s at length 6100
+2025-12-13 19:42:17,352 - INFO - Success at 145_MSL_id_6_Sensor_tr_530_1st_630.csv using Chronos2 | Time cost: 5.484s at length 2430
+2025-12-13 19:42:23,565 - INFO - Success at 147_MSL_id_8_Sensor_tr_590_1st_690.csv using Chronos2 | Time cost: 5.136s at length 2430
+2025-12-13 19:42:30,767 - INFO - Success at 148_MSL_id_9_Sensor_tr_883_1st_1238.csv using Chronos2 | Time cost: 5.793s at length 3535
+2025-12-13 19:42:48,104 - INFO - Success at 149_Stock_id_1_Finance_tr_500_1st_7.csv using Chronos2 | Time cost: 16.386s at length 20000
+2025-12-13 19:45:07,823 - INFO - Success at 151_Stock_id_3_Finance_tr_500_1st_62.csv using Chronos2 | Time cost: 10.537s at length 10000
+2025-12-13 19:46:33,856 - INFO - Success at 155_Stock_id_7_Finance_tr_500_1st_18.csv using Chronos2 | Time cost: 19.027s at length 20000
+2025-12-13 19:49:25,445 - INFO - Success at 156_Stock_id_8_Finance_tr_500_1st_24.csv using Chronos2 | Time cost: 10.332s at length 10000
+2025-12-13 19:50:20,344 - INFO - Success at 160_Stock_id_12_Finance_tr_500_1st_14.csv using Chronos2 | Time cost: 15.523s at length 20000
+2025-12-13 19:52:23,849 - INFO - Success at 162_Stock_id_14_Finance_tr_500_1st_4.csv using Chronos2 | Time cost: 10.147s at length 10000
+2025-12-13 19:55:16,274 - INFO - Success at 165_Stock_id_17_Finance_tr_500_1st_7.csv using Chronos2 | Time cost: 16.633s at length 20000
+2025-12-13 20:04:48,459 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/adapter_config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EEF21B99A0>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 07c7a58b-5bfa-4269-9ce4-6ea6f7e48cc8)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/adapter_config.json
+2025-12-13 20:04:48,459 - WARNING - Retrying in 1s [Retry 1/5].
+2025-12-13 20:05:29,477 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/adapter_config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE803DB140>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 8a069a15-0bea-4539-9383-aa7eb7b35f3b)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/adapter_config.json
+2025-12-13 20:05:29,478 - WARNING - Retrying in 2s [Retry 2/5].
+2025-12-13 20:06:11,526 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/adapter_config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EEF2303CB0>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 63ae687e-e7c9-4cab-9d9e-4ef1fc17dcba)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/adapter_config.json
+2025-12-13 20:06:11,527 - WARNING - Retrying in 4s [Retry 3/5].
+2025-12-13 20:06:55,560 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/adapter_config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE803FE6C0>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 2373246d-1014-4d1a-afa0-f1e9a2b80536)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/adapter_config.json
+2025-12-13 20:06:55,560 - WARNING - Retrying in 8s [Retry 4/5].
+2025-12-13 20:07:43,598 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/adapter_config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80444DD0>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 010ef1ac-2569-45d7-abcf-375e0e798bb7)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/adapter_config.json
+2025-12-13 20:07:43,598 - WARNING - Retrying in 8s [Retry 5/5].
+2025-12-13 20:08:31,631 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/adapter_config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80444080>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 04c84d9c-eb15-41a8-a397-29127a4d8acf)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/adapter_config.json
+2025-12-13 20:09:11,683 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80447D70>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 6045758b-097e-452e-b2f2-a7930976ed9b)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:09:11,683 - WARNING - Retrying in 1s [Retry 1/5].
+2025-12-13 20:09:52,732 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80445700>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 8a962fa7-31ef-4aac-9b08-1096dca92443)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:09:52,733 - WARNING - Retrying in 2s [Retry 2/5].
+2025-12-13 20:10:34,818 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80446F30>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 69625a6d-9b23-4aad-99fb-bed22f9bc61b)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:10:34,818 - WARNING - Retrying in 4s [Retry 3/5].
+2025-12-13 20:11:18,852 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80446B40>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: bcc0bc37-b650-4133-93ef-a1d4a8917c67)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:11:18,853 - WARNING - Retrying in 8s [Retry 4/5].
+2025-12-13 20:12:07,003 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80445760>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 601f2d6e-096e-42d7-ba86-fdaa5d3b5889)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:12:07,004 - WARNING - Retrying in 8s [Retry 5/5].
+2025-12-13 20:12:55,038 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80446D80>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 6a848278-2562-49ae-9a7b-58da349ad8ee)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:13:35,139 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE803E6750>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: f6f7a4af-ca61-4587-a84e-9ff57ce42357)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:13:35,139 - WARNING - Retrying in 1s [Retry 1/5].
+2025-12-13 20:14:16,174 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE803E5CD0>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 48d3ccbc-7791-40a4-b61e-d784388dd9b0)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:14:16,174 - WARNING - Retrying in 2s [Retry 2/5].
+2025-12-13 20:14:58,273 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EEF0F14200>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 0d24dac1-1b6c-4edf-862b-62f83ef2666f)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:14:58,275 - WARNING - Retrying in 4s [Retry 3/5].
+2025-12-13 20:15:42,309 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE804466F0>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 3f253142-4ddd-4780-a966-324853d1fbdf)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:15:42,309 - WARNING - Retrying in 8s [Retry 4/5].
+2025-12-13 20:16:30,343 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80444470>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 371369ea-fee4-44d5-ba66-e3f0698a6548)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:16:30,343 - WARNING - Retrying in 8s [Retry 5/5].
+2025-12-13 20:17:18,410 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80446450>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: d610af5e-5d4a-423e-beb7-2c22e7074bbd)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:17:58,527 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80444770>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 426b30ec-b437-4be2-940a-29bd2732bf59)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:17:58,528 - WARNING - Retrying in 1s [Retry 1/5].
+2025-12-13 20:18:39,562 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80446690>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 0d6380b8-1f78-40ab-8659-511f8f43143c)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:18:39,563 - WARNING - Retrying in 2s [Retry 2/5].
+2025-12-13 20:19:21,630 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE80444170>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 659b78d4-b5cb-4f27-b8ae-03fe7955e66f)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:19:21,631 - WARNING - Retrying in 4s [Retry 3/5].
+2025-12-13 20:20:05,678 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EEF2303D40>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: f9414350-5a1d-4786-a048-f0f376fba7c2)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:20:05,679 - WARNING - Retrying in 8s [Retry 4/5].
+2025-12-13 20:20:53,782 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EEF23028D0>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: 4768fd89-5110-4d19-bed7-c39a0c4b86a1)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:20:53,782 - WARNING - Retrying in 8s [Retry 5/5].
+2025-12-13 20:21:41,816 - WARNING - '(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /amazon/chronos-2/resolve/main/config.json (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001EE803FE180>, 'Connection to huggingface.co timed out. (connect timeout=10)'))"), '(Request ID: c001a540-753a-4447-948b-08a8a913d868)')' thrown while requesting HEAD https://huggingface.co/amazon/chronos-2/resolve/main/config.json
+2025-12-13 20:21:52,495 - INFO - Success at 166_Stock_id_18_Finance_tr_500_1st_18.csv using Chronos2 | Time cost: 1064.109s at length 20000
