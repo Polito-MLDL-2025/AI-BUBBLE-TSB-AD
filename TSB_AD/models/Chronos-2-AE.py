@@ -1,5 +1,5 @@
 import torch
-from torch.nn import nn
+import torch.nn as nn
 from chronos import BaseChronosPipeline
 
 class VAEHead(nn.Module):
@@ -96,8 +96,16 @@ class ChronosAnomalyModel(nn.Module):
         head_type (str): The type of anomaly detection head to use ('vae' or 'ae'). Defaults to 'vae'.
         latent_dim (int): The dimensionality of the latent space for the VAE/AE head. Defaults to 64.
     """
-    def __init__(self, pipeline: BaseChronosPipeline, head_type='vae', latent_dim=64):
+    def __init__(self, pipeline=None, head_type='vae', latent_dim=32, device=None):
         super().__init__()
+        if pipeline:
+            self.pipeline = pipeline
+        else:
+            self.pipeline = BaseChronosPipeline.from_pretrained(
+                "amazon/chronos-2", 
+                device_map=device, 
+                dtype=torch.float32
+            )
         self.model = pipeline.model
         
         # Freeze backbone
@@ -142,7 +150,7 @@ class ChronosAnomalyModel(nn.Module):
             )
 
             last_hidden_state = encoder_outputs[0]  # Shape: [B*V, Num_Patches+Tokens, Dim]
-            # 5. Filter [REG] Token
+            # Filter [REG] Token
             if getattr(self.model.chronos_config, "use_reg_token", False):
                 last_hidden_state = last_hidden_state[:, :-1, :]
             
