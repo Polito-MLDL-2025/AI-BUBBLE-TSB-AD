@@ -25,6 +25,18 @@ torch.backends.cudnn.deterministic = True
 print("CUDA available: ", torch.cuda.is_available())
 print("cuDNN version: ", torch.backends.cudnn.version())
 
+METRIC_COLUMNS = [
+    'AUC-PR',
+    'AUC-ROC',
+    'VUS-PR',
+    'VUS-ROC',
+    'Standard-F1',
+    'PA-F1',
+    'Event-based-F1',
+    'R-based-F1',
+    'Affiliation-F',
+]
+
 if __name__ == '__main__':
 
     Start_T = time.time()
@@ -37,6 +49,18 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     os.makedirs(args.save_dir, exist_ok=True)
+    output_csv = os.path.join(args.save_dir, f'{args.AD_Name}.csv')
+
+    processed_pairs = set()
+    if os.path.exists(output_csv):
+        try:
+            existing_df = pd.read_csv(output_csv, usecols=['file', 'HP'])
+            processed_pairs = set(
+                zip(existing_df['file'].astype(str), existing_df['HP'].astype(str))
+            )
+            print(f'Loaded {len(processed_pairs)} existing results from {output_csv}')
+        except Exception as exc:
+            print(f'Warning: failed to read existing results from {output_csv}: {exc}')
 
     file_list = pd.read_csv(args.file_lsit)['file_name'].values
 
@@ -45,7 +69,6 @@ if __name__ == '__main__':
     keys, values = zip(*Det_HP.items())
     combinations = [dict(zip(keys, v)) for v in itertools.product(*values)]
 
-    write_csv = []
     for filename in file_list:
         print('Processing:{} by {}'.format(filename, args.AD_Name))
 
@@ -62,6 +85,10 @@ if __name__ == '__main__':
         data_train = data[:int(train_index), :]
 
         for params in combinations:
+            hp_str = str(params)
+            if (filename, hp_str) in processed_pairs:
+                print(f'Skipping {filename} HP:{hp_str} as it has already been processed')
+                continue
 
             if args.AD_Name in Semisupervise_AD_Pool:
                 output = run_Semisupervise_AD(args.AD_Name, data_train, data, **params)
@@ -73,17 +100,17 @@ if __name__ == '__main__':
             try:
                 evaluation_result = get_metrics(output, label, slidingWindow=slidingWindow)
                 print('evaluation_result: ', evaluation_result)
-                list_w = list(evaluation_result.values())
-            except:
-                list_w = [0]*9
-            list_w.insert(0, params)
-            list_w.insert(0, filename)
-            write_csv.append(list_w)
+            except Exception:
+                evaluation_result = {}
 
-            ## Temp Save
-            col_w = list(evaluation_result.keys())
-            col_w.insert(0, 'HP')
-            col_w.insert(0, 'file')
-            w_csv = pd.DataFrame(write_csv, columns=col_w)
+            metrics_row = {k: 0 for k in METRIC_COLUMNS}
+            metrics_row.update(evaluation_result)
+            row = {'file': filename, 'HP': hp_str, **metrics_row}
 
-            w_csv.to_csv(f'{args.save_dir}/{args.AD_Name}.csv', index=False)
+            pd.DataFrame([row], columns=['file', 'HP'] + METRIC_COLUMNS).to_csv(
+                output_csv,
+                mode='a',
+                header=not os.path.exists(output_csv),
+                index=False,
+            )
+            processed_pairs.add((filename, hp_str))
