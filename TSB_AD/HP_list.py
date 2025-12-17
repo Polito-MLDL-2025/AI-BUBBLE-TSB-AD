@@ -96,8 +96,8 @@ Multi_algo_HP_dict = {
     },
     'Sub_Chronos2Ada': {
         'periodicity': [1],
-        'per_history': [100, 1000],
-        'per_context': [3, 10, 100],
+        'per_history': [10, 100, 1000],
+        'per_context': [1, 3, 10],
         'warmup': [50],
         'quantile_low': [0.01],
         'alpha': [0.99],
@@ -254,8 +254,8 @@ Uni_algo_HP_dict = {
     },
     'Sub_Chronos2Ada': {
         'periodicity': [1],
-        'per_history': [100,1000],
-        'per_context': [3,10,100],
+        'per_history': [10, 100, 1000],
+        'per_context': [1, 3, 10],
         'warmup': [50],
         'quantile_low': [0.01],
         'alpha': [0.99],

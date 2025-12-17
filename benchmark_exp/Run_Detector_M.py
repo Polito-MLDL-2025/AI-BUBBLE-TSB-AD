@@ -37,6 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('--AD_Name', type=str, default='IForest')
     args = parser.parse_args()
 
+    os.makedirs(args.save_dir, exist_ok=True)
 
     target_dir = os.path.join(args.score_dir, args.AD_Name)
     os.makedirs(target_dir, exist_ok = True)
