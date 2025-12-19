@@ -1,4 +1,3 @@
-
 Multi_algo_HP_dict = {
     'IForest': {
         'n_estimators': [25, 50, 100, 150, 200],
@@ -106,7 +105,6 @@ Multi_algo_HP_dict = {
     },
 }
 
-
 Optimal_Multi_algo_HP_dict = {
     'IForest': {'n_estimators': 25, 'max_features': 0.8},
     'LOF': {'n_neighbors': 50, 'metric': 'euclidean'},
@@ -117,7 +115,7 @@ Optimal_Multi_algo_HP_dict = {
     'KNN': {'n_neighbors': 50, 'method': 'mean'},
     'KMeansAD': {'n_clusters': 10, 'window_size': 40},
     'KShapeAD': {'n_clusters': 20, 'window_size': 40},
-    'COPOD': {'n_jobs':1},
+    'COPOD': {'n_jobs': 1},
     'CBLOF': {'n_clusters': 4, 'alpha': 0.6},
     'EIF': {'n_trees': 50},
     'RobustPCA': {'max_iter': 1000},
@@ -133,7 +131,6 @@ Optimal_Multi_algo_HP_dict = {
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50}
 }
-
 
 Uni_algo_HP_dict = {
     'Sub_IForest': {
@@ -245,11 +242,11 @@ Uni_algo_HP_dict = {
     },
     'Chronos2Ada': {
         'context_length': [96, 256, 512],
-        'warmup': [ 50, 1000],
+        'warmup': [50, 1000],
         'quantile_low': [0.01, 0.05],
         'alpha': [0.95, 0.99],
         'err_multiplier': [2.0],
-        'max_history': [1000,2000,5000],
+        'max_history': [1000, 2000, 5000],
         'skip_anomaly_updates': [True],
     },
     'Sub_Chronos2Ada': {
@@ -318,7 +315,7 @@ Optimal_Uni_algo_HP_dict = {
     'Sub_Chronos2Ada': {
         'periodicity': 1,
         'per_history': 100,
-        'per_context': 10,
+        'per_context': 3,
         'warmup': 50,
         'quantile_low': 0.01,
         'alpha': 0.99,

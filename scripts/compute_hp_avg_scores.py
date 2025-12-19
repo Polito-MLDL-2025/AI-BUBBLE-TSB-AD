@@ -23,8 +23,8 @@ def main():
     parser.add_argument('--input', type=str, 
                         default='Datasets/TSB-AD-Datasets/hp-tuning-u/Chronos2Ada_252.csv',
                         help='Path to HP tuning CSV file')
-    parser.add_argument('--metric', type=str, default='VUS-ROC',
-                        help='Metric to use for ranking (default: VUS-ROC)')
+    parser.add_argument('--metric', type=str, default='VUS-PR',
+                        help='Metric to use for ranking (default: VUS-PR)')
     parser.add_argument('--top_k', type=int, default=10,
                         help='Show top K configurations')
     args = parser.parse_args()

@@ -50,8 +50,8 @@ python benchmark_exp/HP_Tuning_M.py --dataset_dir ./Datasets/TSB-AD-Datasets/TSB
 ### Univariate
 ```shell
 python benchmark_exp/Run_Detector_U.py --dataset_dir ./Datasets/TSB-AD-Datasets/TSB-AD-U \
-  --file_lsit ./Datasets/TSB-AD-Datasets/File_List/TSB-AD-U-Eva_test.csv \
-  --score_dir ./Datasets/TSB-AD_Datasets/eval_chro2/score/uni \
+  --file_lsit ./Datasets/TSB-AD-Datasets/File_List/TSB-AD-U-Eva.csv \
+  --score_dir ./Datasets/TSB-AD-Datasets/eval_chro2/score/uni \
   --save_dir ./Datasets/TSB-AD-Datasets/eval_chro2/metrics/uni \
   --save False \
   --AD_Name Chronos2Ada
@@ -61,7 +61,7 @@ python benchmark_exp/Run_Detector_U.py --dataset_dir ./Datasets/TSB-AD-Datasets/
 
 ```shell
 python benchmark_exp/Run_Detector_M.py --dataset_dir ./Datasets/TSB-AD-Datasets/TSB-AD-M \
-  --file_lsit ./Datasets/TSB-AD-Datasets/File_List/TSB-AD-M-Eva_test.csv \
+  --file_lsit ./Datasets/TSB-AD-Datasets/File_List/TSB-AD-M-Eva.csv \
   --score_dir ./Datasets/TSB-AD_Datasets/eval_chro2/score/multi \
   --save_dir ./Datasets/TSB-AD-Datasets/eval_chro2/metrics/multi \
   --save False \
@@ -72,8 +72,8 @@ python benchmark_exp/Run_Detector_M.py --dataset_dir ./Datasets/TSB-AD-Datasets/
 ### Univariate
 ```shell
 python benchmark_exp/Run_Detector_U.py --dataset_dir ./Datasets/TSB-AD-Datasets/TSB-AD-U \
-  --file_lsit ./Datasets/TSB-AD-Datasets/File_List/TSB-AD-U-Eva_test.csv \
-  --score_dir ./Datasets/TSB-AD_Datasets/eval_sub_chro2/score/uni \
+  --file_lsit ./Datasets/TSB-AD-Datasets/File_List/TSB-AD-U-Eva.csv \
+  --score_dir ./Datasets/TSB-AD-Datasets/eval_sub_chro2/score/uni \
   --save_dir ./Datasets/TSB-AD-Datasets/eval_sub_chro2/metrics/uni \
   --save False \
   --AD_Name Sub_Chronos2Ada
@@ -83,8 +83,8 @@ python benchmark_exp/Run_Detector_U.py --dataset_dir ./Datasets/TSB-AD-Datasets/
 
 ```shell
 python benchmark_exp/Run_Detector_M.py --dataset_dir ./Datasets/TSB-AD-Datasets/TSB-AD-M \
-  --file_lsit ./Datasets/TSB-AD-Datasets/File_List/TSB-AD-M-Eva_test.csv \
-  --score_dir ./Datasets/TSB-AD_Datasets/eval_sub_chro2/score/multi \
+  --file_lsit ./Datasets/TSB-AD-Datasets/File_List/TSB-AD-M-Eva.csv \
+  --score_dir ./Datasets/TSB-AD-Datasets/eval_sub_chro2/score/multi \
   --save_dir ./Datasets/TSB-AD-Datasets/eval_sub_chro2/metrics/multi \
   --save False \
   --AD_Name Sub_Chronos2Ada
