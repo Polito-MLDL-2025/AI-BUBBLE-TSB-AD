@@ -184,11 +184,11 @@ class Chronos2AE(BaseDetector):
     def __init__(self, 
                  ts_dim = 1,
                  slidingWindow=100,
-                 head_type='ae',
+                 head_type='vae',
                  latent_dim=32,
                  batch_size=32,
                  lr=1e-3,
-                 epochs=10,
+                 epochs=5,
                  validation_size=0.2):
         super().__init__()
         self.cuda = True
@@ -262,6 +262,10 @@ class Chronos2AE(BaseDetector):
 
             avg_loss = total_loss / len(train_loader)
 
+            # TODO: early stopping
+            # Validation should be used only to check the optimal number of epochs to train the VAE
+            # Current experiments run shows 5 epochs to be enough, but a more rigorous check is needed to confirm
+            """
             # Validation every 5 epochs
             if (epoch + 1) % 5 == 0:
                 self.model.eval()
@@ -278,8 +282,9 @@ class Chronos2AE(BaseDetector):
             else:
                 # Update the progress bar description with the current loss
                 epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f}")
-
-            # TODO: early stopping (?)
+            """
+            
+            epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f}")
         
         self.decision_scores_ = self.decision_function(data)
         self._process_decision_scores()

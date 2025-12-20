@@ -232,6 +232,11 @@ Uni_algo_HP_dict = {
     },
     'MOMENT_FT': {
         'win_size': [64, 128, 256]
+    },
+    'Chronos_2_AE': {
+        'slidingWindow': [50, 100],
+        'head_type': ['ae', 'vae'],
+        'epochs': [3, 5]
     }
 }
 
@@ -271,5 +276,6 @@ Optimal_Uni_algo_HP_dict = {
     'TimesFM': {'win_size': 96},
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},
-    'M2N2': {}
+    'M2N2': {},
+    'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'vae', 'epochs': 5}
 }
