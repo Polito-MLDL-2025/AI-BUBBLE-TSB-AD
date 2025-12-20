@@ -320,8 +320,7 @@ class Chronos2AE(BaseDetector):
             num_vars = X.shape[1]
             window_scores = window_scores.reshape(-1, num_vars)
             # Aggregate across variables to get one score per window
-            # ? (e.g., mean, or maybe max)
-            # TODO: Check how it is done in the rest of the codebase
+            # In the rest of the codebase they usally use mean and sum
             window_scores = window_scores.mean(axis=1)
 
         # Map window-level scores back to original time series points.
