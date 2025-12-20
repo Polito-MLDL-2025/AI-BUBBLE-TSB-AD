@@ -202,6 +202,7 @@ class Chronos2AE(BaseDetector):
         self.lr = lr
         self.epochs = epochs
         self.validation_size = validation_size
+        self.__anomaly_score = None
 
         # Download Chronos-2 pipeline
         self.pipeline = BaseChronosPipeline.from_pretrained(
@@ -295,26 +296,40 @@ class Chronos2AE(BaseDetector):
         
         with torch.no_grad():
             for batch, _ in loader:
-                batch = batch.permute(0, 2, 1).to(self.device)
+                # original shape: [Batch, Window_Size, Vars], must be permuted for Chronos 2
+                batch = batch.permute(0, 2, 1).to(self.device) # shape: [Batch, Vars, Window_Size]
                 recon, _, _, target = self.model(batch)
                 
+                # recon and target shape: [Batch * Vars, Num_Patches, Backbone_Dim + 2]
+                
                 # Compute MSE per windows
-                mse = F.mse_loss(recon, target, reduction='none')
+                mse = F.mse_loss(recon, target, reduction='none') # shape: [Batch * Vars, Num_Patches, Backbone_Dim + 2]
+                
                 # Average over Patches and Dimensions to get one score per window
+                # score shape: [Batch * Vars]
                 score = mse.mean(dim=[1, 2]).cpu().numpy()
                 window_scores.append(score)
+        
+        # window_scores contains scores for each window/variable combination
         window_scores = np.concatenate(window_scores)
 
+        # Map window-level scores back to original time series points.
+        # Since we use a sliding window with stride=1, each point is covered by multiple windows.
+        # We aggregate these scores by averaging them.
         final_scores = np.zeros(len(X))
         counts = np.zeros(len(X))
         
         for i, score in enumerate(window_scores):
+            # ? if multivariate, window_scores is flat [Window_0_Var_0, Window_0_Var_1, ..., Window_N_Var_M]
+            # TODO: Ensure multivariate scores are correctly mapped
+            
             # Window i covers [i: i + window_size]
             final_scores[i: i + self.window_size] += score
             counts[i: i + self.window_size] += 1
         
         counts[counts == 0] = 1 # Avoid division by 0
-        return final_scores / counts
+        self.__anomaly_score = final_scores / counts
+        return self.__anomaly_score
     
     def anomaly_score(self) -> np.ndarray:
         return self.__anomaly_score
