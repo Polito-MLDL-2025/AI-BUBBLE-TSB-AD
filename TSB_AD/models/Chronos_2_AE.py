@@ -267,29 +267,28 @@ class Chronos2AE(BaseDetector):
             avg_loss = total_loss / len(train_loader)
 
             # Validation every epoch
-            # ! To speed up it could be good to do this only every 5 epochs
-            # ! If you want to skip this, simply pass empty val_data
-            # tho it is no the way is done in TSBAD afaik
-            self.model.eval()
-            val_loss = 0
-            if len(val_loader) > 0:
-                with torch.no_grad():
-                    for batch, _ in val_loader:
-                        batch = batch.permute(0, 2, 1).to(self.device)
-                        recon, mu, logvar, original_embeddings = self.model(batch)
-                        loss = self.criterion(recon, original_embeddings, mu, logvar, reduction='mean')
-                        val_loss += loss.item()
-                avg_val_loss = val_loss / len(val_loader)
-            else:
-                avg_val_loss = avg_loss
+            # ? To speed up it could be good to do this only every 5 epochs, tho it is no the way is done in TSBAD afaik
+            # ! Uncomment later, keep this commented for quick debugging only
+            # self.model.eval()
+            # val_loss = 0
+            # if len(val_loader) > 0:
+                # with torch.no_grad():
+                    # for batch, _ in val_loader:
+                        # batch = batch.permute(0, 2, 1).to(self.device)
+                        # recon, mu, logvar, original_embeddings = self.model(batch)
+                        # loss = self.criterion(recon, original_embeddings, mu, logvar, reduction='mean')
+                        # val_loss += loss.item()
+                # avg_val_loss = val_loss / len(val_loader)
+            # else:
+                # avg_val_loss = avg_loss
 
-            epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f} | Val: {avg_val_loss:.4f}")
-            self.model.train()
+            # epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f} | Val: {avg_val_loss:.4f}")
+            # self.model.train()
 
-            self.early_stopping(avg_val_loss, self.model)
-            if self.early_stopping.early_stop:
-                print("   Early stopping<<<")
-                break
+            # self.early_stopping(avg_val_loss, self.model)
+            # if self.early_stopping.early_stop:
+                # print("   Early stopping<<<")
+                # break
         
         self.decision_scores_ = self.decision_function(data)
         self._process_decision_scores()
