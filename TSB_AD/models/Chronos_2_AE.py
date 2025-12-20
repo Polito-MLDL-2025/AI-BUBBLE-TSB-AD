@@ -13,7 +13,7 @@ from chronos import BaseChronosPipeline
 from .base import BaseDetector
 from ..utils.dataset import TSDataset
 from ..utils.dataset import ReconstructDataset
-from ..utils.torch_utility import get_gpu
+from ..utils.torch_utility import get_gpu, EarlyStoppingTorch
 
 class VAEHead(nn.Module):
     """
@@ -189,7 +189,8 @@ class Chronos2AE(BaseDetector):
                  batch_size=32,
                  lr=1e-3,
                  epochs=10,
-                 validation_size=0.2):
+                 validation_size=0.2,
+                 patience=3):
         super().__init__()
         self.cuda = True
         self.device = get_gpu(self.cuda)
@@ -202,7 +203,9 @@ class Chronos2AE(BaseDetector):
         self.lr = lr
         self.epochs = epochs
         self.validation_size = validation_size
+        self.patience = patience
         self.__anomaly_score = None
+        self.early_stopping = EarlyStoppingTorch(None, patience=patience)
 
         # Download Chronos-2 pipeline
         self.pipeline = BaseChronosPipeline.from_pretrained(
@@ -263,10 +266,12 @@ class Chronos2AE(BaseDetector):
 
             avg_loss = total_loss / len(train_loader)
 
-            # Validation every 5 epochs
-            if (epoch + 1) % 5 == 0:
-                self.model.eval()
-                val_loss = 0
+            # Validation every epoch
+            # ! To speed up it could be good to do this only every 5 epochs
+            # tho it is no the way is done in TSBAD afaik
+            self.model.eval()
+            val_loss = 0
+            if len(val_loader) > 0:
                 with torch.no_grad():
                     for batch, _ in val_loader:
                         batch = batch.permute(0, 2, 1).to(self.device)
@@ -274,13 +279,16 @@ class Chronos2AE(BaseDetector):
                         loss = self.criterion(recon, original_embeddings, mu, logvar, reduction='mean')
                         val_loss += loss.item()
                 avg_val_loss = val_loss / len(val_loader)
-                epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f} | Val: {avg_val_loss:.4f}")
-                self.model.train()
             else:
-                # Update the progress bar description with the current loss
-                epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f}")
+                avg_val_loss = avg_loss
 
-            # TODO: early stopping (?)
+            epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f} | Val: {avg_val_loss:.4f}")
+            self.model.train()
+
+            self.early_stopping(avg_val_loss, self.model)
+            if self.early_stopping.early_stop:
+                print("   Early stopping<<<")
+                break
         
         self.decision_scores_ = self.decision_function(data)
         self._process_decision_scores()
