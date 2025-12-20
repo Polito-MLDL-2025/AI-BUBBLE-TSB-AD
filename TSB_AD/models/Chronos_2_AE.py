@@ -188,9 +188,10 @@ class Chronos2AE(BaseDetector):
                  latent_dim=32,
                  batch_size=32,
                  lr=1e-3,
-                 epochs=5,
+                 epochs=10,
                  validation_size=0.2,
-                 patience=3):
+                 patience=3,
+                 stride=1):
         super().__init__()
         self.cuda = True
         self.device = get_gpu(self.cuda)
@@ -204,6 +205,7 @@ class Chronos2AE(BaseDetector):
         self.epochs = epochs
         self.validation_size = validation_size
         self.patience = patience
+        self.stride = stride
         self.__anomaly_score = None
         self.early_stopping = EarlyStoppingTorch(None, patience=patience)
 
@@ -222,12 +224,12 @@ class Chronos2AE(BaseDetector):
 
         # Initialize Datasets and DataLoaders
         train_loader = DataLoader(
-            dataset=ReconstructDataset(tsTrain, window_size=self.window_size),
+            dataset=ReconstructDataset(tsTrain, window_size=self.window_size, stride=self.stride),
             batch_size=self.batch_size,
             shuffle=True
         )        
         val_loader = DataLoader(
-            dataset=ReconstructDataset(tsValid, window_size=self.window_size),
+            dataset=ReconstructDataset(tsValid, window_size=self.window_size, stride=self.stride),
             batch_size=self.batch_size,
             shuffle=False
         )
@@ -296,7 +298,7 @@ class Chronos2AE(BaseDetector):
         return self
 
     def decision_function(self, X):
-        dataset = ReconstructDataset(X, window_size=self.window_size) # By default: [window_size = 100, stride = 1]
+        dataset = ReconstructDataset(X, window_size=self.window_size, stride=self.stride) # By default: [window_size = 100, stride = 1]
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         
         self.model.eval()
@@ -337,14 +339,15 @@ class Chronos2AE(BaseDetector):
         # Map window-level scores back to original time series points.
         # Since we use a sliding window with stride=1, each point is covered by multiple windows.
         # We aggregate these scores by averaging them.
-        # TODO: could generalize to different stride values (!= 1)
         final_scores = np.zeros(len(X))
         counts = np.zeros(len(X))
         
         for i, score in enumerate(window_scores):
-            # Window i covers [i: i + window_size]
-            final_scores[i: i + self.window_size] += score
-            counts[i: i + self.window_size] += 1
+            # Window i covers [i * stride : i * stride + window_size]
+            start_idx = i * self.stride
+            end_idx = start_idx + self.window_size
+            final_scores[start_idx: end_idx] += score
+            counts[start_idx: end_idx] += 1
         
         counts[counts == 0] = 1 # Avoid division by 0
         self.__anomaly_score = final_scores / counts
