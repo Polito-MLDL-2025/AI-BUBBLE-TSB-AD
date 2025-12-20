@@ -13,8 +13,14 @@ from TSB_AD.model_wrapper import run_Chronos_2_AE
 def main():
     print("Starting Chronos 2 AE Check Script...")
     
+    MULTIVARIATE = True  # Flag to choose between univariate and multivariate data
+
     # Load sample data
-    data_path = 'Datasets/TSB-AD-U/001_NAB_id_1_Facility_tr_1007_1st_2014.csv'
+    if MULTIVARIATE:
+        data_path = 'Datasets/TSB-AD-M/057_SMD_id_1_Facility_tr_4529_1st_4629.csv'
+    else:
+        data_path = 'Datasets/TSB-AD-U/001_NAB_id_1_Facility_tr_1007_1st_2014.csv'
+
     if not os.path.exists(data_path):
         print(f"Error: Data file not found at {data_path}")
         return
@@ -22,13 +28,19 @@ def main():
     print(f"Loading data from {data_path}...")
     try:
         df = pd.read_csv(data_path)
-        data = df['Data'].values.reshape(-1, 1).astype(float)
         
         # Load Labels if they exist, otherwise create dummy zeros
         if 'Label' in df.columns:
             labels = df['Label'].values.astype(int)
+            data_columns = [col for col in df.columns if col != 'Label']
+            data = df[data_columns].values.astype(float)
+            
+            if MULTIVARIATE:
+                # ! REMOVE LATER !
+                data = data[:, :2] # Reduce to only two columns for quick debugging
         else:
             print("Warning: 'Label' column not found. Assuming all normal (0).")
+            data = df.values.astype(float)
             labels = np.zeros(len(data))
             
         print(f"Data loaded. Shape: {data.shape}")
@@ -58,6 +70,7 @@ def main():
             slidingWindow=100,
             head_type='vae',
             latent_dim=32,
+            epochs=1 # ! REMOVE LATER
         )
         
         print("\nExecution finished successfully!")
@@ -71,10 +84,17 @@ def main():
             fig, axs = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
             
             # Subplot 1: Original Time Series (Test Set) with Anomalies
-            axs[0].plot(data_test, label='Time Series', color='blue', alpha=0.6, linewidth=1)
-            anomaly_indices = np.where(labels_test == 1)[0]
-            if len(anomaly_indices) > 0:
-                axs[0].scatter(anomaly_indices, data_test[anomaly_indices], color='red', s=20, label='Ground Truth Anomaly', zorder=5)
+            if data_test.ndim == 1:
+                axs[0].plot(data_test, label='Time Series', color='blue', alpha=0.6, linewidth=1)
+                anomaly_indices = np.where(labels_test == 1)[0]
+                if len(anomaly_indices) > 0:
+                    axs[0].scatter(anomaly_indices, data_test[anomaly_indices], color='red', s=20, label='Ground Truth Anomaly', zorder=5)
+            else:
+                for i in range(data_test.shape[1]):
+                    axs[0].plot(data_test[:, i], label=f'Dim {i}', alpha=0.6, linewidth=1)
+                    anomaly_indices = np.where(labels_test == 1)[0]
+                    if len(anomaly_indices) > 0:
+                        axs[0].scatter(anomaly_indices, data_test[anomaly_indices, i], color='red', s=20, label='Ground Truth Anomaly' if i == 0 else None, zorder=5)
             
             axs[0].set_title("Test Data & Ground Truth Anomalies")
             axs[0].legend()

@@ -313,16 +313,25 @@ class Chronos2AE(BaseDetector):
         # window_scores contains scores for each window/variable combination
         window_scores = np.concatenate(window_scores)
 
+        # Reshape to [Num_Windows, Num_Vars]
+        # We know that for each window in the batch, we processed V variables sequentially.
+        # So the flat structure is [W0_V0, W0_V1, ..., W0_Vm, W1_V0, ...]
+        if X.ndim > 1 and X.shape[1] > 1:
+            num_vars = X.shape[1]
+            window_scores = window_scores.reshape(-1, num_vars)
+            # Aggregate across variables to get one score per window
+            # ? (e.g., mean, or maybe max)
+            # TODO: Check how it is done in the rest of the codebase
+            window_scores = window_scores.mean(axis=1)
+
         # Map window-level scores back to original time series points.
         # Since we use a sliding window with stride=1, each point is covered by multiple windows.
         # We aggregate these scores by averaging them.
+        # TODO: could generalize to different stride values (!= 1)
         final_scores = np.zeros(len(X))
         counts = np.zeros(len(X))
         
         for i, score in enumerate(window_scores):
-            # ? if multivariate, window_scores is flat [Window_0_Var_0, Window_0_Var_1, ..., Window_N_Var_M]
-            # TODO: Ensure multivariate scores are correctly mapped
-            
             # Window i covers [i: i + window_size]
             final_scores[i: i + self.window_size] += score
             counts[i: i + self.window_size] += 1
