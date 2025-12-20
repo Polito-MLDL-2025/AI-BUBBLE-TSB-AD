@@ -4,11 +4,36 @@ import pandas as pd
 import numpy as np
 import traceback
 import matplotlib.pyplot as plt
+from TSB_AD.evaluation.metrics import get_metrics
+from TSB_AD.utils.slidingWindows import find_length_rank
 
 # Add the current directory to python path to make sure TSB_AD is importable
 sys.path.append(os.getcwd())
 
 from TSB_AD.model_wrapper import run_Chronos_2_AE
+
+def evaluate_performance(scores, labels, data_train_full):
+    print("\n--- Starting TSB-AD Evaluation ---")
+    
+    # Compute sliding window for VUS metrics
+    try:
+        estimated_window = find_length_rank(data_train_full.reshape(-1, 1), rank=1)
+        print(f"Auto-detected Period/Window for Evaluation: {estimated_window}")
+    except:
+        estimated_window = 100
+        print(f"Could not detect period, using default window: {estimated_window}")
+
+    metrics_dict = get_metrics(
+        score=scores, 
+        labels=labels, 
+        slidingWindow=estimated_window
+    )
+
+    print("\nResults:")
+    for metric_name, value in metrics_dict.items():
+        print(f"{metric_name:<20}: {value:.4f}")
+
+    return metrics_dict
 
 def main():
     print("Starting Chronos 2 AE Check Script...")
@@ -57,13 +82,20 @@ def main():
             data_test=data_test,
             slidingWindow=100,
             head_type='vae',
-            latent_dim=32,
-        )
+            epochs=5
+    )
         
         print("\nExecution finished successfully!")
         
         if scores is not None:
             print(f"Result scores shape: {scores.shape}")
+            
+            # Ensure scores and labels have same length
+            min_len = min(len(scores), len(labels_test))
+            scores = scores[:min_len]
+            labels_test = labels_test[:min_len]
+            
+            evaluate_performance(scores, labels_test, data)
             
             print("Generating plot...")
             
@@ -88,9 +120,9 @@ def main():
             axs[1].grid(True, alpha=0.3)
             
             plt.tight_layout()
+            # plt.show()
             plt.savefig("check_vis_results.png")
             print("Plot saved to 'check_vis_results.png'")
-            # plt.show()
         else:
             print("Result is None.")
 
