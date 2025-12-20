@@ -112,7 +112,8 @@ Optimal_Multi_algo_HP_dict = {
     'Donut': {'win_size': 60, 'lr': 0.001},  
     'TimesNet': {'win_size': 96, 'lr': 0.0001},
     'FITS': {'win_size': 100, 'lr': 0.001},
-    'OFA': {'win_size': 50}
+    'OFA': {'win_size': 50},
+    'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'vae', 'epochs': 1}
 }
 
 
@@ -232,6 +233,11 @@ Uni_algo_HP_dict = {
     },
     'MOMENT_FT': {
         'win_size': [64, 128, 256]
+    },
+    'Chronos_2_AE': {
+        'slidingWindow': [50, 100],
+        'head_type': ['ae', 'vae'],
+        'epochs': [3, 5]
     }
 }
 
@@ -271,5 +277,6 @@ Optimal_Uni_algo_HP_dict = {
     'TimesFM': {'win_size': 96},
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},
-    'M2N2': {}
+    'M2N2': {},
+    'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'vae', 'epochs': 5}
 }

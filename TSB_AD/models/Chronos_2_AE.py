@@ -184,11 +184,11 @@ class Chronos2AE(BaseDetector):
     def __init__(self, 
                  ts_dim = 1,
                  slidingWindow=100,
-                 head_type='ae',
+                 head_type='vae',
                  latent_dim=32,
                  batch_size=32,
                  lr=1e-3,
-                 epochs=10,
+                 epochs=5,
                  validation_size=0.2,
                  patience=3):
         super().__init__()
@@ -268,6 +268,7 @@ class Chronos2AE(BaseDetector):
 
             # Validation every epoch
             # ! To speed up it could be good to do this only every 5 epochs
+            # ! If you want to skip this, simply pass empty val_data
             # tho it is no the way is done in TSBAD afaik
             self.model.eval()
             val_loss = 0
