@@ -320,7 +320,10 @@ class Chronos2AE(BaseDetector):
             num_vars = X.shape[1]
             window_scores = window_scores.reshape(-1, num_vars)
             # Aggregate across variables to get one score per window
-            # In the rest of the codebase they usally use mean and sum
+            # In the rest of the codebase they usally use mean and sum:
+            #   USAD: Averages the reconstruction error across all features and time points within a window
+            #   TranAD: Averages the reconstruction error over the feature dimension
+            #   Chronos: Processes each channel independently and then averages the final scores
             window_scores = window_scores.mean(axis=1)
 
         # Map window-level scores back to original time series points.
