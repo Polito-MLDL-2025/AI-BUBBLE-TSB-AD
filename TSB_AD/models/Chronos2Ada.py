@@ -1,11 +1,53 @@
 
 from typing import Dict, Iterable, Optional, Sequence, Tuple
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
 import torch
 from chronos import BaseChronosPipeline, Chronos2Pipeline
 from tqdm import tqdm
 from dataclasses import dataclass
 from .base import BaseDetector
+
+_CHRONOS2ADA_NUM_WORKERS_ENV = "TSB_AD_CHRONOS2ADA_NUM_WORKERS"
+_DEFAULT_NUM_WORKERS = 4
+
+
+def _resolve_num_workers(explicit: Optional[int]) -> int:
+    if explicit is not None:
+        if explicit == -1:
+            return max(os.cpu_count() or 1, 1)
+        if explicit < -1:
+            return max((os.cpu_count() or 1) + 1 + explicit, 1)
+        if explicit <= 0:
+            raise ValueError("num_workers must be >= 1 (or -1 for all CPUs).")
+        return explicit
+
+    raw = os.getenv(_CHRONOS2ADA_NUM_WORKERS_ENV)
+    if raw is None or raw == "":
+        return _DEFAULT_NUM_WORKERS
+
+    try:
+        parsed = int(raw)
+    except ValueError:
+        print(
+            f"WARN: Environment variable {_CHRONOS2ADA_NUM_WORKERS_ENV} must be an int; got {raw!r}. "
+            f"Using default {_DEFAULT_NUM_WORKERS}."
+        )
+        return _DEFAULT_NUM_WORKERS
+
+    if parsed == -1:
+        return max(os.cpu_count() or 1, 1)
+    if parsed < -1:
+        return max((os.cpu_count() or 1) + 1 + parsed, 1)
+    if parsed <= 0:
+        print(
+            f"WARN: Environment variable {_CHRONOS2ADA_NUM_WORKERS_ENV} must be >= 1 (or -1 for all CPUs); "
+            f"got {parsed}. Using default {_DEFAULT_NUM_WORKERS}."
+        )
+        return _DEFAULT_NUM_WORKERS
+    return parsed
+
 
 @dataclass
 class ChronosADConfig:
@@ -26,6 +68,7 @@ class ChronosADConfig:
     timestamp_col: str = "timestamp"
     device: Optional[str] = None
     dtype: Optional[str] = None
+    num_workers: int = _DEFAULT_NUM_WORKERS
 
 class RollingBuffer:
     """Fixed-capacity rolling buffer with quantile and aggregate helpers."""
@@ -99,6 +142,7 @@ class Chronos2Ada(BaseDetector):
             skip_anomaly_updates: bool = False,  # if True, do not update history on predicted anomalies
             model_name="amazon/chronos-2",
             device=None,
+            num_workers: Optional[int] = None,
     ):
         """
         Chronos2 model for anomaly detection using iterative bin-based forecasting.
@@ -148,6 +192,7 @@ class Chronos2Ada(BaseDetector):
             max_history=max_history,
             device=device,
             dtype=dtype,
+            num_workers=_resolve_num_workers(num_workers),
         )
         self.config = cfg
 
@@ -255,23 +300,6 @@ def _compute_scores_multivariate(
         prediction_length=config.prediction_length,
         quantile_levels=quantile_levels,
     )
-    
-    # Initialize per-channel rolling buffers
-    buffer_capacity = config.max_history or max(n_points, 1)
-    width_histories = [RollingBuffer(buffer_capacity) for _ in range(n_channels)]
-    error_histories = [RollingBuffer(buffer_capacity) for _ in range(n_channels)]
-    
-    # Scores per channel
-    channel_scores = np.zeros((n_points, n_channels), dtype=float)
-    safe_width_prev = [None] * n_channels
-
-    iterator: Iterable[int] = range(n_steps)
-    if progress:
-        try:
-            from tqdm import tqdm
-            iterator = tqdm(iterator, total=n_steps)
-        except ModuleNotFoundError:
-            pass
 
     # Map quantile levels to indices
     q_low_level = config.quantile_low
@@ -283,48 +311,134 @@ def _compute_scores_multivariate(
     q_mid_idx = quantile_levels.index(q_mid_level)
     q_high_idx = quantile_levels.index(q_high_level)
 
-    for step_idx in iterator:
-        idx = config.context_length + step_idx
-        
-        # quantiles_list[step_idx] has shape (n_channels, prediction_length, n_quantiles)
+    num_workers = min(max(int(config.num_workers), 1), n_channels)
+
+    # Serial path preserves the original step-wise progress behavior.
+    if num_workers <= 1 or n_channels <= 1:
+        buffer_capacity = config.max_history or max(n_points, 1)
+        width_histories = [RollingBuffer(buffer_capacity) for _ in range(n_channels)]
+        error_histories = [RollingBuffer(buffer_capacity) for _ in range(n_channels)]
+        safe_width_prev = [None] * n_channels
+
+        scores = np.zeros(n_points, dtype=float)
+
+        iterator: Iterable[int] = range(n_steps)
+        if progress:
+            try:
+                from tqdm import tqdm
+
+                iterator = tqdm(iterator, total=n_steps)
+            except ModuleNotFoundError:
+                pass
+
+        for step_idx in iterator:
+            idx = config.context_length + step_idx
+
+            pred_quantiles = quantiles_list[step_idx]
+            if isinstance(pred_quantiles, torch.Tensor):
+                pred_quantiles = pred_quantiles.detach().cpu().numpy()
+
+            step_max_score = 0.0
+            for ch in range(n_channels):
+                q_lo = float(pred_quantiles[ch, 0, q_low_idx])
+                q_mid = float(pred_quantiles[ch, 0, q_mid_idx])
+                q_hi = float(pred_quantiles[ch, 0, q_high_idx])
+
+                width_t = float(q_hi - q_lo)
+                err_t = float(abs(values[idx, ch] - q_mid))
+
+                safe_width_t = None
+                if width_histories[ch].size >= config.warmup:
+                    safe_width_t = float(
+                        width_histories[ch].quantile(config.alpha)
+                        + config.err_multiplier * error_histories[ch].aggregate(config.error_agg)
+                    )
+
+                used_safe_width = safe_width_t if safe_width_t is not None else safe_width_prev[ch]
+                anomaly_score = (
+                    float(max(width_t, err_t) / (used_safe_width + 1e-8)) if used_safe_width else 0.0
+                )
+                step_max_score = max(step_max_score, anomaly_score)
+
+                is_anomaly = used_safe_width is not None and (
+                    width_t > used_safe_width or err_t > used_safe_width
+                )
+                if not (config.skip_anomaly_updates and is_anomaly):
+                    width_histories[ch].append(width_t)
+                    error_histories[ch].append(err_t)
+
+                safe_width_prev[ch] = used_safe_width if used_safe_width is not None else safe_width_prev[ch]
+
+            scores[idx] = step_max_score
+
+        return scores
+
+    # Parallel path: compute each channel independently and reduce by max.
+    buffer_capacity = config.max_history or max(n_points, 1)
+
+    q_lo_all = np.empty((n_steps, n_channels), dtype=float)
+    q_mid_all = np.empty((n_steps, n_channels), dtype=float)
+    q_hi_all = np.empty((n_steps, n_channels), dtype=float)
+    for step_idx in range(n_steps):
         pred_quantiles = quantiles_list[step_idx]
         if isinstance(pred_quantiles, torch.Tensor):
             pred_quantiles = pred_quantiles.detach().cpu().numpy()
-        
-        for ch in range(n_channels):
-            # Get quantiles for this channel at horizon 0
-            # pred_quantiles shape: (n_channels, prediction_length, n_quantiles)
-            q_lo = float(pred_quantiles[ch, 0, q_low_idx])
-            q_mid = float(pred_quantiles[ch, 0, q_mid_idx])
-            q_hi = float(pred_quantiles[ch, 0, q_high_idx])
-            
+        q_lo_all[step_idx] = pred_quantiles[:, 0, q_low_idx]
+        q_mid_all[step_idx] = pred_quantiles[:, 0, q_mid_idx]
+        q_hi_all[step_idx] = pred_quantiles[:, 0, q_high_idx]
+
+    def compute_channel_scores_tail(ch: int) -> np.ndarray:
+        width_history = RollingBuffer(buffer_capacity)
+        error_history = RollingBuffer(buffer_capacity)
+        safe_width_prev = None
+
+        scores_tail = np.zeros(n_steps, dtype=float)
+        for step_idx in range(n_steps):
+            q_lo = float(q_lo_all[step_idx, ch])
+            q_mid = float(q_mid_all[step_idx, ch])
+            q_hi = float(q_hi_all[step_idx, ch])
+
             width_t = float(q_hi - q_lo)
-            err_t = float(abs(values[idx, ch] - q_mid))
-            
+            err_t = float(abs(values[config.context_length + step_idx, ch] - q_mid))
+
             safe_width_t = None
-            if width_histories[ch].size >= config.warmup:
+            if width_history.size >= config.warmup:
                 safe_width_t = float(
-                    width_histories[ch].quantile(config.alpha)
-                    + config.err_multiplier * error_histories[ch].aggregate(config.error_agg)
+                    width_history.quantile(config.alpha)
+                    + config.err_multiplier * error_history.aggregate(config.error_agg)
                 )
-            
-            used_safe_width = safe_width_t if safe_width_t is not None else safe_width_prev[ch]
-            
-            anomaly_score = (
+
+            used_safe_width = safe_width_t if safe_width_t is not None else safe_width_prev
+            scores_tail[step_idx] = (
                 float(max(width_t, err_t) / (used_safe_width + 1e-8)) if used_safe_width else 0.0
             )
-            channel_scores[idx, ch] = anomaly_score
-            
-            is_anomaly = used_safe_width is not None and (width_t > used_safe_width or err_t > used_safe_width)
-            
-            if not (config.skip_anomaly_updates and is_anomaly):
-                width_histories[ch].append(width_t)
-                error_histories[ch].append(err_t)
-            
-            safe_width_prev[ch] = used_safe_width if used_safe_width is not None else safe_width_prev[ch]
 
-    # Final score is max across channels
-    scores = np.max(channel_scores, axis=1)
+            is_anomaly = used_safe_width is not None and (width_t > used_safe_width or err_t > used_safe_width)
+            if not (config.skip_anomaly_updates and is_anomaly):
+                width_history.append(width_t)
+                error_history.append(err_t)
+
+            safe_width_prev = used_safe_width if used_safe_width is not None else safe_width_prev
+
+        return scores_tail
+
+    scores_tail = np.zeros(n_steps, dtype=float)
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = {executor.submit(compute_channel_scores_tail, ch): ch for ch in range(n_channels)}
+        iterator = as_completed(futures)
+        if progress:
+            try:
+                from tqdm import tqdm
+
+                iterator = tqdm(iterator, total=n_channels)
+            except ModuleNotFoundError:
+                pass
+
+        for future in iterator:
+            scores_tail = np.maximum(scores_tail, future.result())
+
+    scores = np.zeros(n_points, dtype=float)
+    scores[config.context_length :] = scores_tail
     return scores
 
 
