@@ -217,7 +217,6 @@ class Chronos2AE(BaseDetector):
         )
 
     def fit(self, data, y=None):
-        # TODO: Check if validation is necessary or can be omitted
         split_idx = int((1-self.validation_size)*len(data)) # Using 80% training, 20% validation
         tsTrain = data[:split_idx]
         tsValid = data[split_idx:]
