@@ -11,6 +11,7 @@ from .base import BaseDetector
 
 _CHRONOS2ADA_NUM_WORKERS_ENV = "TSB_AD_CHRONOS2ADA_NUM_WORKERS"
 _DEFAULT_NUM_WORKERS = 4
+_DEFAULT_CONTEXT_BATCH_STEPS = 30000
 
 
 def _resolve_num_workers(explicit: Optional[int]) -> int:
@@ -55,6 +56,7 @@ class ChronosADConfig:
 
     context_length: int = 64
     prediction_length: int = 1
+    context_batch_size: int = _DEFAULT_CONTEXT_BATCH_STEPS
     warmup: int = 50
     quantile_low: float = 0.01
     quantile_mid: float = 0.5
@@ -143,6 +145,7 @@ class Chronos2Ada(BaseDetector):
             model_name="amazon/chronos-2",
             device=None,
             num_workers: Optional[int] = None,
+            context_batch_size: int = _DEFAULT_CONTEXT_BATCH_STEPS,
     ):
         """
         Chronos2 model for anomaly detection using iterative bin-based forecasting.
@@ -165,6 +168,9 @@ class Chronos2Ada(BaseDetector):
         self.max_history = max_history
         self.error_agg = error_agg
         self.skip_anomaly_updates = skip_anomaly_updates
+        if context_batch_size <= 0:
+            raise ValueError("context_batch_size must be >= 1.")
+        self.context_batch_size = context_batch_size
 
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -193,6 +199,7 @@ class Chronos2Ada(BaseDetector):
             device=device,
             dtype=dtype,
             num_workers=_resolve_num_workers(num_workers),
+            context_batch_size=context_batch_size,
         )
         self.config = cfg
 
@@ -279,27 +286,16 @@ def _compute_scores_multivariate(
         raise ValueError("Not enough data: context_length must be smaller than series length.")
 
     n_steps = n_points - config.context_length
-    
-    # Build context array: shape (n_steps, n_channels, context_length)
-    # For each step, we take context_length points across all channels
-    context_list = []
-    for i in range(n_steps):
-        # shape: (n_channels, context_length) - transpose from (context_length, n_channels)
-        context_slice = values[i : i + config.context_length, :].T
-        context_list.append(context_slice)
-    
-    # Shape: (n_steps, n_channels, context_length)
-    context_array = np.stack(context_list, axis=0)
-    
-    # Call predict_quantiles for all steps at once
-    # Input shape: (batch_size, n_variates, history_length) = (n_steps, n_channels, context_length)
-    # Output quantiles: list of tensors, each shape (n_variates, prediction_length, n_quantiles)
-    # Output mean: list of tensors, each shape (n_variates, prediction_length)
-    quantiles_list, mean_list = pipeline.predict_quantiles(
-        context_array,
-        prediction_length=config.prediction_length,
-        quantile_levels=quantile_levels,
-    )
+
+    batch_steps = min(n_steps, max(int(config.context_batch_size), 1))
+
+    def build_context_batch(start: int, end: int) -> np.ndarray:
+        context_list = []
+        for i in range(start, end):
+            # shape: (n_channels, context_length) - transpose from (context_length, n_channels)
+            context_slice = values[i : i + config.context_length, :].T
+            context_list.append(context_slice)
+        return np.stack(context_list, axis=0)
 
     # Map quantile levels to indices
     q_low_level = config.quantile_low
@@ -331,10 +327,23 @@ def _compute_scores_multivariate(
             except ModuleNotFoundError:
                 pass
 
+        batch_start = 0
+        batch_end = 0
+        quantiles_batch = []
         for step_idx in iterator:
+            if step_idx >= batch_end:
+                batch_start = step_idx
+                batch_end = min(batch_start + batch_steps, n_steps)
+                context_array = build_context_batch(batch_start, batch_end)
+                with torch.inference_mode():
+                    quantiles_batch, _ = pipeline.predict_quantiles(
+                        context_array,
+                        prediction_length=config.prediction_length,
+                        quantile_levels=quantile_levels,
+                    )
             idx = config.context_length + step_idx
 
-            pred_quantiles = quantiles_list[step_idx]
+            pred_quantiles = quantiles_batch[step_idx - batch_start]
             if isinstance(pred_quantiles, torch.Tensor):
                 pred_quantiles = pred_quantiles.detach().cpu().numpy()
 
@@ -379,13 +388,22 @@ def _compute_scores_multivariate(
     q_lo_all = np.empty((n_steps, n_channels), dtype=float)
     q_mid_all = np.empty((n_steps, n_channels), dtype=float)
     q_hi_all = np.empty((n_steps, n_channels), dtype=float)
-    for step_idx in range(n_steps):
-        pred_quantiles = quantiles_list[step_idx]
-        if isinstance(pred_quantiles, torch.Tensor):
-            pred_quantiles = pred_quantiles.detach().cpu().numpy()
-        q_lo_all[step_idx] = pred_quantiles[:, 0, q_low_idx]
-        q_mid_all[step_idx] = pred_quantiles[:, 0, q_mid_idx]
-        q_hi_all[step_idx] = pred_quantiles[:, 0, q_high_idx]
+    for batch_start in range(0, n_steps, batch_steps):
+        batch_end = min(batch_start + batch_steps, n_steps)
+        context_array = build_context_batch(batch_start, batch_end)
+        with torch.inference_mode():
+            quantiles_batch, _ = pipeline.predict_quantiles(
+                context_array,
+                prediction_length=config.prediction_length,
+                quantile_levels=quantile_levels,
+            )
+        for step_offset, pred_quantiles in enumerate(quantiles_batch):
+            step_idx = batch_start + step_offset
+            if isinstance(pred_quantiles, torch.Tensor):
+                pred_quantiles = pred_quantiles.detach().cpu().numpy()
+            q_lo_all[step_idx] = pred_quantiles[:, 0, q_low_idx]
+            q_mid_all[step_idx] = pred_quantiles[:, 0, q_mid_idx]
+            q_hi_all[step_idx] = pred_quantiles[:, 0, q_high_idx]
 
     def compute_channel_scores_tail(ch: int) -> np.ndarray:
         width_history = RollingBuffer(buffer_capacity)
