@@ -10,8 +10,26 @@ from dataclasses import dataclass
 from .base import BaseDetector
 
 _CHRONOS2ADA_NUM_WORKERS_ENV = "TSB_AD_CHRONOS2ADA_NUM_WORKERS"
+_CHRONOS2ADA_CONTEXT_BATCH_ENV = "TSB_AD_CHRONOS2ADA_CONTEXT_BATCH_STEPS"
 _DEFAULT_NUM_WORKERS = 4
 _DEFAULT_CONTEXT_BATCH_STEPS = 30000
+_raw_context_batch_steps = os.getenv(_CHRONOS2ADA_CONTEXT_BATCH_ENV)
+if _raw_context_batch_steps:
+    try:
+        _parsed_context_batch_steps = int(_raw_context_batch_steps)
+    except ValueError:
+        print(
+            f"WARN: Environment variable {_CHRONOS2ADA_CONTEXT_BATCH_ENV} must be an int; "
+            f"got {_raw_context_batch_steps!r}. Using default {_DEFAULT_CONTEXT_BATCH_STEPS}."
+        )
+    else:
+        if _parsed_context_batch_steps <= 0:
+            print(
+                f"WARN: Environment variable {_CHRONOS2ADA_CONTEXT_BATCH_ENV} must be >= 1; "
+                f"got {_parsed_context_batch_steps}. Using default {_DEFAULT_CONTEXT_BATCH_STEPS}."
+            )
+        else:
+            _DEFAULT_CONTEXT_BATCH_STEPS = _parsed_context_batch_steps
 
 
 def _resolve_num_workers(explicit: Optional[int]) -> int:
