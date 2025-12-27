@@ -280,5 +280,5 @@ Optimal_Uni_algo_HP_dict = {
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},
     'M2N2': {},
-    'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'vae', 'latent_dim': 32, 'lr': 1e-3, 'epochs': 5}
+    'Chronos_2_AE': {'slidingWindow': 50, 'head_type': 'vae', 'latent_dim': 64, 'lr': 0.001, 'epochs': 5}
 }
