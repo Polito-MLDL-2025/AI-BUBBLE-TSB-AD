@@ -213,7 +213,7 @@ class Chronos2AE(BaseDetector):
         self.pipeline = BaseChronosPipeline.from_pretrained(
             "amazon/chronos-2", 
             device_map=self.device, 
-            dtype=torch.float32
+            dtype=torch.float16
         )
 
     def fit(self, data, y=None):
