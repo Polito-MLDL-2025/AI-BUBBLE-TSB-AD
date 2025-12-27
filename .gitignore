@@ -7,3 +7,5 @@ TSB_AD/models/NormA.py
 TSB_AD/models/Series2Graph.py
 *.png
 eval/
+.python-version
+Runs/
