@@ -213,7 +213,7 @@ class Chronos2AE(BaseDetector):
         self.pipeline = BaseChronosPipeline.from_pretrained(
             "amazon/chronos-2", 
             device_map=self.device, 
-            dtype=torch.float32
+            dtype=torch.float16
         )
 
     def fit(self, data, y=None):
@@ -270,29 +270,30 @@ class Chronos2AE(BaseDetector):
             # Validation every epoch
             # ? To speed up it could be good to do this only every 5 epochs, tho it is no the way is done in TSBAD afaik
             # ! Uncomment later, keep this commented for quick debugging only
-            # self.model.eval()
-            # val_loss = 0
-            # if len(val_loader) > 0:
-                # with torch.no_grad():
-                    # for batch, _ in val_loader:
-                        # batch = batch.permute(0, 2, 1).to(self.device)
-                        # recon, mu, logvar, original_embeddings = self.model(batch)
-                        # loss = self.criterion(recon, original_embeddings, mu, logvar, reduction='mean')
-                        # val_loss += loss.item()
-                # avg_val_loss = val_loss / len(val_loader)
-            # else:
-                # avg_val_loss = avg_loss
+            self.model.eval()
+            val_loss = 0
+            if len(val_loader) > 0:
+                with torch.no_grad():
+                    for batch, _ in val_loader:
+                        batch = batch.permute(0, 2, 1).to(self.device)
+                        recon, mu, logvar, original_embeddings = self.model(batch)
+                        loss = self.criterion(recon, original_embeddings, mu, logvar, reduction='mean')
+                        val_loss += loss.item()
+                avg_val_loss = val_loss / len(val_loader)
+            else:
+                avg_val_loss = avg_loss
 
-            # epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f} | Val: {avg_val_loss:.4f}")
-            # self.model.train()
+            self.model.train()
 
-            # self.early_stopping(avg_val_loss, self.model)
-            # if self.early_stopping.early_stop:
-                # print("   Early stopping<<<")
-                # break
+            self.early_stopping(avg_val_loss, self.model)
+            if self.early_stopping.early_stop:
+                print("\tEarly stopping")
+                break
+            
+            epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f} | Val: {avg_val_loss:.4f} | Early stopping: {self.early_stopping.counter}")
         
-        self.decision_scores_ = self.decision_function(data)
-        self._process_decision_scores()
+        # self.decision_scores_ = self.decision_function(data)
+        # self._process_decision_scores()
 
         return self
 
@@ -304,7 +305,7 @@ class Chronos2AE(BaseDetector):
         window_scores = []
         
         with torch.no_grad():
-            for batch, _ in loader:
+            for batch, _ in tqdm(loader, desc="Computing score", unit="batch"):
                 # original shape: [Batch, Window_Size, Vars], must be permuted for Chronos 2
                 batch = batch.permute(0, 2, 1).to(self.device) # shape: [Batch, Vars, Window_Size]
                 recon, _, _, target = self.model(batch)
