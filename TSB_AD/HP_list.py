@@ -88,7 +88,8 @@ Multi_algo_HP_dict = {
     'Chronos_2_AE': {
         'slidingWindow': [50, 100],
         'head_type': ['ae', 'vae'],
-        'epochs': [3, 5]
+        'epochs': [3, 5, 10],
+        'lr': [0.001, 0.0005]
     }
 }
 
