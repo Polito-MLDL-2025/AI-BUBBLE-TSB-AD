@@ -427,6 +427,76 @@ def run_Sub_Chronos2Ada(data, periodicity=1,
                         error_agg="mean",  # one of: mean, median, mode, pXX (e.g., p95)
                         skip_anomaly_updates: bool = False,
                         ):
+    """
+    Periodicity-aware wrapper for Chronos2Ada.
+
+    Run Chronos2Ada with automatic periodicity-based parameter configuration.
+    Use this when you want context_length and max_history derived from detected
+    seasonality instead of setting them manually.
+    
+    This is a wrapper around Chronos2Ada that automatically determines context_length 
+    and max_history based on the detected periodicity of the time series. It's designed 
+    for datasets where the periodicity (seasonality) should inform the model's lookback 
+    window and history buffer size.
+    
+    Key differences from run_Chronos2Ada:
+    - Automatically detects periodicity/seasonality using find_length_rank()
+    - Sets context_length = slidingWindow × per_context (if not provided)
+    - Sets max_history = slidingWindow × per_history (limits rolling buffer to recent periods)
+    - Ensures context_length stays within valid bounds [10, 2048]
+    
+    Parameters:
+    -----------
+    data : array-like, shape (n_samples,) or (n_samples, n_channels)
+        Input time series data
+    periodicity : int, default=1
+        Rank of periodicity to detect (1=dominant period, 2=second strongest, etc.)
+    per_history : int, default=5
+        Multiplier for max_history: max_history = slidingWindow × per_history
+        Controls how many periods of history to keep in rolling buffers
+    per_context : int, default=5
+        Multiplier for context_length: context_length = slidingWindow × per_context
+        Controls lookback window as a multiple of detected period
+    context_length : int, optional
+        If provided, overrides automatic context_length calculation
+    prediction_length : int, default=1
+        Forecast horizon (typically 1 for anomaly detection)
+    warmup : int, default=50
+        Number of steps needed to build baseline before scoring
+    quantile_low : float, default=0.01
+        Lower quantile for prediction interval (1st percentile)
+    quantile_mid : float, default=0.5
+        Median quantile for point forecast
+    quantile_high : float, default=0.99
+        Upper quantile for prediction interval (99th percentile)
+    alpha : float, default=0.99
+        Quantile level for width baseline (99th percentile of width history)
+    err_multiplier : float, default=2.0
+        Multiplier for error contribution to safe_width baseline
+    error_agg : str, default="mean"
+        Error history aggregation method: "mean", "median", "mode", or "pXX" (e.g., "p95")
+    skip_anomaly_updates : bool, default=False
+        If True, don't update history buffers on detected anomalies
+    
+    Returns:
+    --------
+    score : array-like, shape (n_samples,)
+        Anomaly scores (higher = more anomalous)
+        First context_length scores are 0
+    
+    Example:
+    --------
+    # For daily data with weekly seasonality (period ~7)
+    scores = run_Sub_Chronos2Ada(
+        data, 
+        periodicity=1,      # Use dominant period
+        per_history=4,      # Keep 4 periods of history
+        per_context=2       # Use 2 periods as context
+    )
+    # If detected period is 7, this sets:
+    # - context_length = 7 × 2 = 14
+    # - max_history = 7 × 4 = 28
+    """
     print(f'Hyperparameters: periodicity={periodicity}, per_history={per_history},per_context={per_context}, context_length={context_length}, prediction_length={prediction_length}, warmup={warmup}, quantile_low={quantile_low}, quantile_mid={quantile_mid}, quantile_high={quantile_high}, alpha={alpha}, err_multiplier={err_multiplier}, error_agg={error_agg}, skip_anomaly_updates={skip_anomaly_updates}')
     from .models.Chronos2Ada import Chronos2Ada
     CHRONOS2_MAX_CONTEXT_LENGTH = 2048
@@ -487,6 +557,113 @@ def run_Chronos2Ada(data, context_length=64, prediction_length=1, warmup=50,
                     error_agg="mean",  # one of: mean, median, mode, pXX (e.g., p95)
                     skip_anomaly_updates: bool = False,
                     ):
+    """
+    Run Chronos2Ada anomaly detection with fixed hyperparameters.
+
+    Use this when you want explicit control over context_length and max_history
+    without periodicity inference (see run_Sub_Chronos2Ada for auto settings).
+    
+    Chronos2Ada uses the Chronos-2 foundation model to detect anomalies through 
+    quantile-based forecasting. At each timestep, it predicts quantiles (low, mid, high) 
+    for the next value, computes prediction uncertainty (width) and forecast error, 
+    and scores anomalies based on deviation from an adaptive baseline.
+    
+    How it works:
+    1. At each timestep t, use the previous context_length points to forecast quantiles
+    2. Compute width_t = q_high - q_low (prediction uncertainty)
+    3. Compute error_t = |actual_t - q_mid| (forecast error)
+    4. After warmup steps, compute adaptive baseline:
+       safe_width_t = quantile(width_history, alpha) + err_multiplier × aggregate(error_history)
+    5. Anomaly score = max(width_t, error_t) / safe_width_t
+       - Score > 1.0 indicates anomaly (exceeds baseline)
+       - Score < 1.0 indicates normal behavior
+    
+    For multivariate data, each channel maintains independent histories, and the 
+    final score at each timestep is the maximum across all channels.
+    
+    Parameters:
+    -----------
+    data : array-like, shape (n_samples,) or (n_samples, n_channels)
+        Input time series data. Must have length > context_length.
+    context_length : int, default=64
+        Lookback window for forecasting. Number of historical points used to predict 
+        the next value. Longer context captures more complex patterns but increases 
+        computation time. Must be in range [10, 2048].
+    prediction_length : int, default=1
+        Forecast horizon (typically 1 for anomaly detection).
+    warmup : int, default=50
+        Number of initial steps to build baseline before assigning meaningful scores.
+        During warmup, scores are 0 while histories accumulate.
+    quantile_low : float, default=0.01
+        Lower quantile for prediction interval (0.01 = 1st percentile).
+        Lower values create wider intervals.
+    quantile_mid : float, default=0.5
+        Median quantile for point forecast (0.5 = 50th percentile).
+    quantile_high : float, default=0.99
+        Upper quantile for prediction interval (0.99 = 99th percentile).
+        Higher values create wider intervals.
+    alpha : float, default=0.99
+        Quantile level for width baseline (0.99 = 99th percentile of width history).
+        Higher values make the detector less sensitive (higher baseline).
+    err_multiplier : float, default=2.0
+        Multiplier for error contribution to safe_width baseline.
+        Higher values make the detector less sensitive.
+    max_history : int or None, default=None
+        Maximum size of rolling history buffers. None = unlimited (full series).
+        Set to limit memory usage for long sequences (e.g., 1000).
+    error_agg : str, default="mean"
+        Error history aggregation method:
+        - "mean": Average of errors
+        - "median": Median of errors (robust to outliers)
+        - "mode": Most common error value
+        - "pXX": XXth percentile (e.g., "p95" for 95th percentile)
+    skip_anomaly_updates : bool, default=False
+        If True, don't update history buffers on timesteps where anomalies are detected.
+        Prevents anomalies from contaminating the baseline.
+    
+    Returns:
+    --------
+    score : array-like, shape (n_samples,)
+        Anomaly scores for each timestep (higher = more anomalous).
+        - First context_length scores are 0 (no forecast yet)
+        - Next warmup scores are 0 (building baseline)
+        - Remaining scores reflect anomaly strength
+        - Score > 1.0 typically indicates anomaly
+    
+    Examples:
+    ---------
+    # Basic usage with defaults
+    from TSB_AD.model_wrapper import run_Chronos2Ada
+    scores = run_Chronos2Ada(data)
+    
+    # High sensitivity (catch more anomalies, more false positives)
+    scores = run_Chronos2Ada(
+        data,
+        alpha=0.95,              # Lower baseline
+        err_multiplier=1.5,      # Lower error weight
+        error_agg="median"       # Robust aggregation
+    )
+    
+    # Low false positives (conservative, may miss subtle anomalies)
+    scores = run_Chronos2Ada(
+        data,
+        alpha=0.995,             # Higher baseline
+        err_multiplier=3.0,      # Higher error weight
+        skip_anomaly_updates=True # Don't contaminate baseline
+    )
+    
+    # Long sequences with memory constraints
+    scores = run_Chronos2Ada(
+        data,
+        context_length=128,      # Longer context for patterns
+        max_history=1000,        # Limit memory usage
+        warmup=100               # Longer warmup for stability
+    )
+    
+    See also:
+    ---------
+    run_Sub_Chronos2Ada : Automatic periodicity-based configuration
+    """
     from .models.Chronos2Ada import Chronos2Ada
     clf = Chronos2Ada(
         context_length=context_length,
