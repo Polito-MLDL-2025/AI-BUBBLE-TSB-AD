@@ -130,6 +130,7 @@ Optimal_Multi_algo_HP_dict = {
     'TimesNet': {'win_size': 96, 'lr': 0.0001},
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50},
+    'Chronos2Ada': {'context_length': 512, 'warmup': 50, 'quantile_low': 0.05, 'alpha': 0.99, 'err_multiplier': 2.0, 'max_history': 2000, 'skip_anomaly_updates': True},
     'Sub_Chronos2Ada': {'periodicity': 1, 'per_history': 100, 'per_context': 3, 'warmup': 50, 'quantile_low': 0.01, 'alpha': 0.99, 'err_multiplier': 2.0, 'skip_anomaly_updates': True}
 }
 

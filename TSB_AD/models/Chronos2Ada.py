@@ -12,7 +12,7 @@ from .base import BaseDetector
 _CHRONOS2ADA_NUM_WORKERS_ENV = "TSB_AD_CHRONOS2ADA_NUM_WORKERS"
 _CHRONOS2ADA_CONTEXT_BATCH_ENV = "TSB_AD_CHRONOS2ADA_CONTEXT_BATCH_STEPS"
 _DEFAULT_NUM_WORKERS = 4
-_DEFAULT_CONTEXT_BATCH_STEPS = 30000
+_DEFAULT_CONTEXT_BATCH_STEPS = 10000
 _raw_context_batch_steps = os.getenv(_CHRONOS2ADA_CONTEXT_BATCH_ENV)
 if _raw_context_batch_steps:
     try:
@@ -353,12 +353,18 @@ def _compute_scores_multivariate(
                 batch_start = step_idx
                 batch_end = min(batch_start + batch_steps, n_steps)
                 context_array = build_context_batch(batch_start, batch_end)
+                if config.device == "cuda":
+                    context_array = torch.tensor(context_array, dtype=config.dtype, device=config.device)
+
                 with torch.inference_mode():
                     quantiles_batch, _ = pipeline.predict_quantiles(
                         context_array,
                         prediction_length=config.prediction_length,
                         quantile_levels=quantile_levels,
                     )
+                if config.device == "cuda":
+                    torch.cuda.empty_cache()
+
             idx = config.context_length + step_idx
 
             pred_quantiles = quantiles_batch[step_idx - batch_start]
@@ -406,15 +412,30 @@ def _compute_scores_multivariate(
     q_lo_all = np.empty((n_steps, n_channels), dtype=float)
     q_mid_all = np.empty((n_steps, n_channels), dtype=float)
     q_hi_all = np.empty((n_steps, n_channels), dtype=float)
-    for batch_start in range(0, n_steps, batch_steps):
+
+    batch_gen = range(0, n_steps, batch_steps)
+    if progress:
+        try:
+            from tqdm import tqdm
+            batch_gen = tqdm(batch_gen, total=len(batch_gen))
+        except ModuleNotFoundError:
+            pass
+
+    for batch_start in batch_gen:
         batch_end = min(batch_start + batch_steps, n_steps)
         context_array = build_context_batch(batch_start, batch_end)
+        if config.device == "cuda":
+            context_array = torch.tensor(context_array, dtype=config.dtype, device=config.device)
+
         with torch.inference_mode():
             quantiles_batch, _ = pipeline.predict_quantiles(
                 context_array,
                 prediction_length=config.prediction_length,
                 quantile_levels=quantile_levels,
             )
+        if config.device == "cuda":
+            torch.cuda.empty_cache()
+
         for step_offset, pred_quantiles in enumerate(quantiles_batch):
             step_idx = batch_start + step_offset
             if isinstance(pred_quantiles, torch.Tensor):
