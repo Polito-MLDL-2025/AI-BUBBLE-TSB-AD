@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m TSB_AD.main:*)",
+      "Bash(python:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(pip install:*)"
+    ]
+  }
+}
