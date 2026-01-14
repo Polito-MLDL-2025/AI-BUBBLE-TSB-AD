@@ -5,7 +5,7 @@ from .utils.slidingWindows import find_length_rank
 Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IForest', 'LOF', 'Sub_LOF', 'POLY', 'MatrixProfile', 'Sub_PCA', 'PCA', 'HBOS', 
                         'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS']
 Semisupervise_AD_Pool = ['Left_STAMPi', 'SAND', 'MCD', 'Sub_MCD', 'OCSVM', 'Sub_OCSVM', 'AutoEncoder', 'CNN', 'LSTMAD', 'TranAD', 'USAD', 'OmniAnomaly', 
-                        'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2']
+                        'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'Chronos_2_AE']
 
 def run_Unsupervise_AD(model_name, data, **kwargs):
     try:
@@ -37,6 +37,13 @@ def run_Semisupervise_AD(model_name, data_train, data_test, **kwargs):
         error_message = f"An error occurred while running the model '{function_name}': {str(e)}"
         print(error_message)
         return error_message
+
+def run_Chronos_2_AE(data_train, data_test, slidingWindow=100, head_type='ae', latent_dim=32, epochs=10, n_jobs=1, **kwargs):
+    from .models.Chronos_2_AE import Chronos2AE
+    clf = Chronos2AE(slidingWindow=slidingWindow, head_type=head_type, latent_dim=latent_dim, epochs=epochs, **kwargs)
+    clf.fit(data_train)
+    score = clf.decision_function(data_test)
+    return score.ravel()
 
 def run_FFT(data, ifft_parameters=5, local_neighbor_window=21, local_outlier_threshold=0.6, max_region_size=50, max_sign_change_distance=10):
     from .models.FFT import FFT
