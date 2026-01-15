@@ -89,6 +89,13 @@ Multi_algo_HP_dict = {
         'bin_ratio': [0.03, 0.05, 0.1],
         'context_ratio': [0.2, 0.25, 0.3]
     }
+    'Chronos_2_AE': {
+        'slidingWindow': [50, 100],
+        'head_type': ['ae', 'vae'],
+        'latent_dim': [32, 64],
+        'lr': [1e-3, 1e-4],
+        'epochs': [5, 10]
+    }
 }
 
 
@@ -118,6 +125,7 @@ Optimal_Multi_algo_HP_dict = {
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50},
     'Chronos2': {'bin_ratio': 0.03, 'context_ratio': 0.25}
+    'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'ae', 'latent_dim': 64, 'lr': 0.0001, 'epochs': 10},
 }
 
 
@@ -241,6 +249,13 @@ Uni_algo_HP_dict = {
     },
     'MOMENT_FT': {
         'win_size': [64, 128, 256]
+    },
+    'Chronos_2_AE': {
+        'slidingWindow': [50, 100],
+        'head_type': ['ae', 'vae'],
+        'latent_dim': [32, 64],
+        'lr': [1e-3, 1e-4],
+        'epochs': [5, 10]
     }
 }
 
@@ -281,5 +296,6 @@ Optimal_Uni_algo_HP_dict = {
     'TimesFM': {'win_size': 96},
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},
-    'M2N2': {}
+    'M2N2': {},
+    'Chronos_2_AE': {'slidingWindow': 50, 'head_type': 'vae', 'latent_dim': 64, 'lr': 0.001, 'epochs': 10}
 }
