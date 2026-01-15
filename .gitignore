@@ -2,7 +2,8 @@ __pycache__
 *.egg-info
 build
 run_scripts
-Datasets/
+Datasets/TSB-AD-M
+Datasets/TSB-AD-U
 TSB_AD/models/NormA.py
 TSB_AD/models/Series2Graph.py
 Datasets/TSB-AD-M/*
@@ -13,3 +14,9 @@ eval/
 .python-version
 Runs/
 .json
+
+# Include these
+!Datasets/File_List/filtered_file_list_M.csv
+!Datasets/File_List/filtered_file_list_M.csv
+!Datasets/File_List/tuning-U-filter.csv
+!Datasets/File_List/tuning-M-filter.csv
