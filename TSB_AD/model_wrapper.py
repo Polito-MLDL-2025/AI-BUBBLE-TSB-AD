@@ -425,6 +425,7 @@ def run_Sub_Chronos2Ada(data, periodicity=1,
                         alpha: float = 0.99,
                         err_multiplier: float = 2.0,
                         error_agg="mean",  # one of: mean, median, mode, pXX (e.g., p95)
+                        score_agg="max",  # one of: max, mean
                         skip_anomaly_updates: bool = False,
                         ):
     """
@@ -540,6 +541,7 @@ def run_Sub_Chronos2Ada(data, periodicity=1,
         err_multiplier=err_multiplier,
         max_history=periodic_length,
         error_agg=error_agg,
+        score_agg=score_agg,
         skip_anomaly_updates=skip_anomaly_updates
     )
     clf.fit(data)
@@ -555,6 +557,7 @@ def run_Chronos2Ada(data, context_length=64, prediction_length=1, warmup=50,
                     err_multiplier: float = 2.0,
                     max_history=None,
                     error_agg="mean",  # one of: mean, median, mode, pXX (e.g., p95)
+                    score_agg="max",  # one of: max, mean
                     skip_anomaly_updates: bool = False,
                     ):
     """
@@ -677,6 +680,7 @@ def run_Chronos2Ada(data, context_length=64, prediction_length=1, warmup=50,
         err_multiplier=err_multiplier,
         max_history=max_history,
         error_agg=error_agg,
+        score_agg=score_agg,
         skip_anomaly_updates=skip_anomaly_updates
     )
     clf.fit(data)

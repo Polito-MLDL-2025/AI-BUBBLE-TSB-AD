@@ -83,6 +83,7 @@ class ChronosADConfig:
     err_multiplier: float = 2.0
     max_history: Optional[int] = None
     error_agg: str = "mean"  # one of: mean, median, mode, pXX (e.g., p95)
+    score_agg: str = "max"  # one of: max, mean
     skip_anomaly_updates: bool = False  # if True, do not update history on predicted anomalies
     limit_prediction_length: bool = True
     timestamp_col: str = "timestamp"
@@ -159,6 +160,7 @@ class Chronos2Ada(BaseDetector):
             err_multiplier: float = 2.0,
             max_history: Optional[int] = None,
             error_agg: str = "mean",  # one of: mean, median, mode, pXX (e.g., p95)
+            score_agg: str = "max",  # one of: max, mean
             skip_anomaly_updates: bool = False,  # if True, do not update history on predicted anomalies
             model_name="amazon/chronos-2",
             device=None,
@@ -169,8 +171,8 @@ class Chronos2Ada(BaseDetector):
         Chronos2 model for anomaly detection using iterative bin-based forecasting.
 
         Supports multivariate time series where each channel maintains its own 
-        width and error history. The final anomaly score for each step is the 
-        max score across all channels.
+        width and error history. The final anomaly score for each step is
+        aggregated across channels via score_agg (max or mean).
         """
         super().__init__(contamination=0.1)
 
@@ -185,6 +187,7 @@ class Chronos2Ada(BaseDetector):
         self.err_multiplier = err_multiplier
         self.max_history = max_history
         self.error_agg = error_agg
+        self.score_agg = score_agg
         self.skip_anomaly_updates = skip_anomaly_updates
         if context_batch_size <= 0:
             raise ValueError("context_batch_size must be >= 1.")
@@ -212,6 +215,7 @@ class Chronos2Ada(BaseDetector):
             alpha=alpha,
             err_multiplier=err_multiplier,
             error_agg=error_agg,
+            score_agg=score_agg,
             skip_anomaly_updates=skip_anomaly_updates,
             max_history=max_history,
             device=device,
@@ -286,7 +290,7 @@ def _compute_scores_multivariate(
     Compute anomaly scores for multivariate time series.
     
     Each channel maintains its own width and error history.
-    Final score for each timestep is the max score across all channels.
+    Final score for each timestep is aggregated across channels.
     
     Args:
         values: shape (n_points, n_channels)
@@ -297,7 +301,7 @@ def _compute_scores_multivariate(
         progress: whether to show progress bar
         
     Returns:
-        scores: shape (n_points,) - max score across channels for each timestep
+        scores: shape (n_points,) - aggregated score across channels for each timestep
     """
     n_points, n_channels = values.shape
     if n_points <= config.context_length:
@@ -326,6 +330,9 @@ def _compute_scores_multivariate(
     q_high_idx = quantile_levels.index(q_high_level)
 
     num_workers = min(max(int(config.num_workers), 1), n_channels)
+    score_agg = config.score_agg.lower()
+    if score_agg not in ("max", "mean"):
+        raise ValueError(f"Unsupported score aggregation mode: {config.score_agg}")
 
     # Serial path preserves the original step-wise progress behavior.
     if num_workers <= 1 or n_channels <= 1:
@@ -371,7 +378,8 @@ def _compute_scores_multivariate(
             if isinstance(pred_quantiles, torch.Tensor):
                 pred_quantiles = pred_quantiles.detach().cpu().numpy()
 
-            step_max_score = 0.0
+            step_score = 0.0
+            step_sum_score = 0.0
             for ch in range(n_channels):
                 q_lo = float(pred_quantiles[ch, 0, q_low_idx])
                 q_mid = float(pred_quantiles[ch, 0, q_mid_idx])
@@ -391,7 +399,10 @@ def _compute_scores_multivariate(
                 anomaly_score = (
                     float(max(width_t, err_t) / (used_safe_width + 1e-8)) if used_safe_width else 0.0
                 )
-                step_max_score = max(step_max_score, anomaly_score)
+                if score_agg == "max":
+                    step_score = max(step_score, anomaly_score)
+                else:
+                    step_sum_score += anomaly_score
 
                 is_anomaly = used_safe_width is not None and (
                     width_t > used_safe_width or err_t > used_safe_width
@@ -402,11 +413,13 @@ def _compute_scores_multivariate(
 
                 safe_width_prev[ch] = used_safe_width if used_safe_width is not None else safe_width_prev[ch]
 
-            scores[idx] = step_max_score
+            if score_agg == "mean":
+                step_score = step_sum_score / n_channels
+            scores[idx] = step_score
 
         return scores
 
-    # Parallel path: compute each channel independently and reduce by max.
+    # Parallel path: compute each channel independently and reduce by score_agg.
     buffer_capacity = config.max_history or max(n_points, 1)
 
     q_lo_all = np.empty((n_steps, n_channels), dtype=float)
@@ -492,7 +505,14 @@ def _compute_scores_multivariate(
                 pass
 
         for future in iterator:
-            scores_tail = np.maximum(scores_tail, future.result())
+            channel_scores = future.result()
+            if score_agg == "max":
+                scores_tail = np.maximum(scores_tail, channel_scores)
+            else:
+                scores_tail += channel_scores
+
+    if score_agg == "mean":
+        scores_tail = scores_tail / n_channels
 
     scores = np.zeros(n_points, dtype=float)
     scores[config.context_length :] = scores_tail
