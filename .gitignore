@@ -12,3 +12,4 @@ score
 eval/
 .python-version
 Runs/
+.json
