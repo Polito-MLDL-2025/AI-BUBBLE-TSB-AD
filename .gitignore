@@ -9,3 +9,4 @@ TSB_AD/models/Series2Graph.py
 eval/
 .python-version
 Runs/
+.json
