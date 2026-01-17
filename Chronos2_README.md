@@ -1,93 +1,82 @@
 # Chronos2 Forecasting-Based Anomaly Detection
 
-This implementation uses the pretrained Chronos2 transformer model for time series anomaly detection through iterative forecasting and error analysis. Unlike Chronos1 which uses fixed window sizes (e.g., 100 timesteps context to predict 1 timestep), this implementation uses **percentage-based** bin and context sizing that adapts to the length of your time series.
+This implementation uses the pre-trained Chronos2 transformer model for time series anomaly detection through iterative forecasting.
 
-## How It Works
+Unlike Chronos1, which uses fixed window sizes (e.g., 100 timesteps context to predict 1 timestep), this implementation uses **percentage-based** bin and context sizing that adapts to the length of the given time series. More specifically, by two measures:
+   - Context window = `context_ratio × data_length` (default: 25% of the time series) representing how much of previous history will be fed into the model
+   - Bin size = `bin_ratio × data_length` (default: 3% of the time series) representing how much long must the forecast be
+ 
+For a time series `[1, 2, 3, 4, 5, 6, 7, 8, 9, 0]` we have
 
-This approach operates directly on the time series data using Chronos2's forecasting capabilities with **adaptive, percentage-based window sizing**:
-
-1. **Percentage-Based Windows**: Instead of fixed sizes, window dimensions scale with your data:
-   - Context window = `context_ratio × data_length` (default: 25% of your time series)
-   - Bin size = `bin_ratio × data_length` (default: 3% of your time series)
-   - This means a 1000-step series uses context=250, bin=30, while a 100-step series uses context=25, bin=3
-
-2. **Sliding Window Forecasting**: The time series is processed using overlapping bins with a context-prediction paradigm
-
-3. **Iterative Prediction**: For each position, the context window is used to forecast the next bin of values
-
-4. **Error Computation**: Anomaly scores are calculated as the forecast error between actual and predicted values: `error = MAE(actual, predicted)`
-
-5. **Point-wise Scoring**: The algorithm produces a granular anomaly score for each timestep in the series
-
-## Key Features
-
-- **Adaptive Percentage-Based Sizing**: Unlike fixed-window approaches (e.g., Chronos1's 100:1 ratio), windows scale proportionally with your data length
-- **Direct Time Series Forecasting**: Computes errors in the original time series space using Chronos2's quantile heads
-- **Point-wise Anomaly Scores**: Returns one anomaly score per timestep
-- **True Multivariate Support**: Leverages native Chronos2 multivariate forecasting with cross-channel dependencies
-- **Configurable Granularity**: Adjustable bin and context ratios to balance detection sensitivity and computational cost
-
-## Example
-
-For a time series `[1, 2, 3, 4, 5, 6, 7, 8, 9, 0]`:
-- Context window provides historical patterns
-- Model forecasts next bin → `[4, 5]` predicted
-- Compare with actual → `[4, 5]` → low error (normal)
-- Later: `[9, 0]` prediction fails → high error (anomaly detected!)
-
-Output: Point-wise scores `[0.0, 0.0, 0.1, 0.3, 0.2, 0.2, 4.5, 4.5, ...]` where higher values indicate anomalies.
-
-## Methodology
-
-The detector uses a forecasting-based approach where:
-
-- **Error Computation**: Calculates forecast errors directly in the time series space (comparing predicted vs actual values)
-- **Output**: Produces point-wise anomaly scores (one per timestep)
-- **Chronos2 Components**: Utilizes the full pipeline including quantile heads
-- **Window Strategy**: Employs iterative bins with context-based forecasting
-
-## Usage
-
-```python
-from TSB_AD.models.Chronos2 import Chronos2
-
-# Initialize the detector
-detector = Chronos2(
-    bin_ratio=0.03,        # 3% of data length as bin size
-    context_ratio=0.25,    # 25% of data length as context window
-    input_c=1,             # 1 for univariate, >1 for multivariate
-    model_path="amazon/chronos-2",
-    device="cuda"          # or "cpu"
-)
-
-# Fit on time series data
-# data shape: (n_timesteps, n_features)
-detector.fit(data)
-
-# Get anomaly scores
-anomaly_scores = detector.decision_scores_
 ```
+Time Series Data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+Indices:          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-## Parameters
+STEP 1
+The first `context_size` (4) points are needed as history.
+We cannot score them because there is no history before.
+Scores at indices [0, 1, 2, 3]: Assigned 0.0 automatically.
 
-- **bin_ratio** (float, default=0.03): Ratio of data length to use as bin size for iterative forecasting. Smaller values provide finer-grained detection but increase computation.
+STEP 2
+Current Position: Index 4
+Task: Predict the next "bin" of 2 steps (Indices 4 and 5).
 
-- **context_ratio** (float, default=0.25): Ratio of data length to use as context window size. Larger contexts capture longer-term dependencies but require more memory.
+1. Context Window (Last 4 items):
+   Data[0:4] -> [1, 2, 3, 4]
 
-- **input_c** (int, default=1): Number of input channels/features. Set to 1 for univariate, >1 for multivariate time series.
+2. Model Prediction (Forecasting 2 steps):
+   Based on [1, 2, 3, 4], Chronos predicts -> [5, 6]
 
-- **model_path** (str, default="amazon/chronos-2"): HuggingFace model path for Chronos2.
+3. Comparison (Actual vs Predicted):
+   Index 4: Actual 5 vs Pred 5 -> Error: 0.0
+   Index 5: Actual 6 vs Pred 6 -> Error: 0.0
 
-- **device** (str, default=None): Device to use ('cuda' or 'cpu'). If None, auto-detects.
+4. Store Scores:
+   Scores[4] = 0.0
+   Scores[5] = 0.0
 
-## Why This Approach?
+STEP 3
+Current Position: Index 6 (We jumped over 4 and 5!)
+Task: Predict the next "bin" of 2 steps (Indices 6 and 7).
 
-This percentage-based forecasting approach excels at detecting temporal anomalies where the model cannot predict future behavior from historical patterns. The adaptive window sizing ensures consistent behavior across time series of different lengths, while the forecast error in the time series space directly indicates deviations from learned temporal dynamics, making it ideal for:
+1. Context Window (Last 4 items relative to Index 6):
+   Data[2:6] -> [3, 4, 5, 6]
 
-- TSB-AD benchmark evaluation with standard point-wise anomaly detection metrics
-- Scenarios where interpretability matters (errors are in original data space)
-- Applications requiring granular temporal resolution of anomalies
+2. Model Prediction:
+   Based on [3, 4, 5, 6], Chronos predicts -> [7, 8]
 
-## Attribution
+3. Comparison:
+   Index 6: Actual 7 vs Pred 7 -> Error: 0.0
+   Index 7: Actual 8 vs Pred 8 -> Error: 0.0
 
-This implementation is adapted from the [chronos-forecasting](https://github.com/amazon-science/chronos-forecasting) library by Stella et al.
+4. Store Scores:
+   Scores[6] = 0.0
+   Scores[7] = 0.0
+
+STEP 4
+Current Position: Index 8
+Task: Predict the next "bin" of 2 steps (Indices 8 and 9).
+
+1. Context Window (Last 4 items relative to Index 8):
+   Data[4:8] -> [5, 6, 7, 8]
+
+2. Model Prediction:
+   Based on [5, 6, 7, 8], Chronos expects the trend to continue.
+   It predicts -> [9, 10]
+
+3. Comparison:
+   Index 8: Actual 9 vs Pred 9   -> Error: 0.0
+   Index 9: Actual 0 vs Pred 10  -> Error: |0 - 10| = 10.0  <-- ANOMALY!
+
+4. Store Scores:
+   Scores[8] = 0.0
+   Scores[9] = 10.0
+
+-------------------------------------------------------
+FINAL RESULT
+-------------------------------------------------------
+Original: [1,   2,   3,   4,   5,   6,   7,   8,   9,    0  ]
+Scores:   [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
+
+The high score at index 9 flags the anomaly.
+```
