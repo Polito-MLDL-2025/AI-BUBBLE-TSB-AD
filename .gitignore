@@ -13,6 +13,7 @@ eval/
 .python-version
 Runs/
 .json
+__pycache__
 
 # Include these
 !Datasets/File_List/*-filtered.csv
