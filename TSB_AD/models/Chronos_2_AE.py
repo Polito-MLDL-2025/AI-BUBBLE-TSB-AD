@@ -212,8 +212,7 @@ class Chronos2AE(BaseDetector):
         # Download Chronos-2 pipeline
         self.pipeline = BaseChronosPipeline.from_pretrained(
             "amazon/chronos-2", 
-            device_map=self.device, 
-            dtype=torch.float16
+            device_map=self.device
         )
 
     def fit(self, data, y=None):
