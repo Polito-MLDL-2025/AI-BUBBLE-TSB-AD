@@ -87,14 +87,17 @@ if __name__ == '__main__':
                 evaluation_result = get_metrics(output, label, slidingWindow=slidingWindow)
                 print('evaluation_result: ', evaluation_result)
                 list_w = list(evaluation_result.values())
-            except:
+                col_w = list(evaluation_result.keys())
+            except Exception as e:
+                logging.error(f'Evaluation failed at {filename}: {str(e)}')
                 list_w = [0]*9
+                col_w = ['AUC-PR', 'AUC-ROC', 'VUS-PR', 'VUS-ROC', 'Standard-F1', 'PA-F1', 'Event-based-F1', 'R-based-F1', 'Affiliation-F']
+
             list_w.insert(0, run_time)
             list_w.insert(0, filename)
             write_csv.append(list_w)
 
             ## Temp Save
-            col_w = list(evaluation_result.keys())
             col_w.insert(0, 'Time')
             col_w.insert(0, 'file')
             w_csv = pd.DataFrame(write_csv, columns=col_w)
