@@ -366,9 +366,9 @@ def run_Chronos(data, win_size=50, batch_size=64):
     score = clf.decision_scores_
     return score.ravel()
 
-def run_Chronos2(data, bin_ratio=0.05, context_ratio=0.3):
+def run_Chronos2(data, bin_size=0.03, context_size=0.25):
     from .models.Chronos2 import Chronos2
-    clf = Chronos2(bin_ratio=bin_ratio, context_ratio=context_ratio, input_c=data.shape[1])
+    clf = Chronos2(bin_size=bin_size, context_size=context_size)
     clf.fit(data)
     score = clf.decision_scores_
     return score.ravel()

@@ -86,9 +86,9 @@ Multi_algo_HP_dict = {
         'win_size': [50, 100, 150]
     },
     'Chronos2': {
-        'bin_ratio': [0.03, 0.05, 0.1],
-        'context_ratio': [0.2, 0.25, 0.3]
-    }
+        'bin_size': [0.03, 0.05, 0.1],
+        'context_size': [0.2, 0.25, 0.3]
+    },
     'Chronos_2_AE': {
         'slidingWindow': [50, 100],
         'head_type': ['ae', 'vae'],
@@ -124,7 +124,7 @@ Optimal_Multi_algo_HP_dict = {
     'TimesNet': {'win_size': 96, 'lr': 0.0001},
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50},
-    'Chronos2': {'bin_ratio': 0.03, 'context_ratio': 0.25}
+    'Chronos2': {'bin_size': 0.03, 'context_size': 0.25},
     'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'ae', 'latent_dim': 64, 'lr': 0.0001, 'epochs': 10},
 }
 
@@ -238,8 +238,8 @@ Uni_algo_HP_dict = {
         'win_size': [50, 100, 150]
     },
     'Chronos2': {
-        'bin_ratio': [0.03, 0.05, 0.1],
-        'context_ratio': [0.2, 0.25, 0.3]
+        'bin_size': [0.03, 0.05, 0.1],
+        'context_size': [0.2, 0.25, 0.3]
     },
     'TimesFM': {
         'win_size': [32, 64, 96]
@@ -292,7 +292,7 @@ Optimal_Uni_algo_HP_dict = {
     'OFA': {'win_size': 50},
     'Lag_Llama': {'win_size': 96},
     'Chronos': {'win_size': 100},
-    'Chronos2': {'bin_ratio': 0.03, 'context_ratio': 0.25},
+    'Chronos2': {'bin_size': 0.03, 'context_size': 0.25},
     'TimesFM': {'win_size': 96},
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},

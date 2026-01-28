@@ -3,6 +3,8 @@ This function is adapted from [chronos-forecasting] by [lostella et al.]
 Original source: [https://github.com/amazon-science/chronos-forecasting]
 """
 
+import warnings
+
 import pandas as pd
 import numpy as np
 import torch
@@ -11,15 +13,19 @@ from tqdm import tqdm
 
 from .base import BaseDetector
 
+# Chronos-2 model limits
+CHRONOS2_MAX_CONTEXT_LENGTH = 8192
+CHRONOS2_MAX_PREDICTION_LENGTH = 1024
 
 class Chronos2(BaseDetector):
     def __init__(
         self,
-        bin_ratio=0.03,
-        context_ratio=0.25,
-        input_c=1,
+        bin_size,
+        context_size,
         model_path="amazon/chronos-2",
         device=None,
+        max_context_length=CHRONOS2_MAX_CONTEXT_LENGTH,
+        max_prediction_length=CHRONOS2_MAX_PREDICTION_LENGTH,
     ):
         """
         Chronos2 model for anomaly detection using bin-based forecasting.
@@ -27,31 +33,45 @@ class Chronos2(BaseDetector):
         Supports both univariate and multivariate time series.
         Uses native Chronos2 multivariate forecasting capabilities.
 
+        Note: This approach assumes we have the full time series before analyzing
+        (no real-time detection), and that the initial context window portion
+        is assumed non-anomalous.
+
         Parameters
         ----------
-        bin_ratio : float, optional (default=0.03)
-            Ratio of data length to use as bin size for iterative forecasting.
+        bin_size : float or int, optional (default=0.03)
+            Size of forecast bins for iterative prediction.
+            If < 1.0: Interpreted as ratio of data length (e.g., 0.03 = 3%).
+            If >= 1: Interpreted as absolute number of points (e.g., 64 points).
 
-        context_ratio : float, optional (default=0.25)
-            Ratio of data length to use as context window size.
-
-        input_c : int, optional (default=1)
-            Number of input channels/features. 1 for univariate, >1 for multivariate.
+        context_size : float or int, optional (default=0.25)
+            Size of context window for forecasting.
+            If < 1.0: Interpreted as ratio of data length (e.g., 0.25 = 25%).
+            If >= 1: Interpreted as absolute number of points (e.g., 512 points).
 
         model_path : str, optional (default="amazon/chronos-2")
             HuggingFace model path for Chronos2.
 
         device : str, optional (default=None)
             Device to use ('cuda' or 'cpu'). If None, auto-detects.
+
+        max_context_length : int, optional (default=8192)
+            Maximum allowed context length for Chronos2. Values exceeding this
+            will be clamped and a warning issued.
+
+        max_prediction_length : int, optional (default=1024)
+            Maximum allowed prediction/bin length for Chronos2. Values exceeding
+            this will be clamped and a warning issued.
         """
         super().__init__(contamination=0.1)
 
         self.model_name = "Chronos2"
 
-        self.bin_ratio = bin_ratio
-        self.context_ratio = context_ratio
+        self.bin_size = bin_size
+        self.context_size = context_size
+        self.max_context_length = max_context_length
+        self.max_prediction_length = max_prediction_length
 
-        self.input_c = input_c
         self.model_path = model_path
 
         if device is None:
@@ -64,8 +84,6 @@ class Chronos2(BaseDetector):
             device_map=self.device,
             torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
         )
-
-        self.score_list = []
 
     def chronos2_forecast(self, context, pred_len):
         """
@@ -159,8 +177,32 @@ class Chronos2(BaseDetector):
         if n_samples < 2:
             raise ValueError("Chronos2 requires at least 2 timesteps.")
 
-        bin_size = max(1, int(n_samples * self.bin_ratio))
-        context_size = max(1, int(n_samples * self.context_ratio))
+        # Auto-detect: < 1.0 = ratio, >= 1 = fixed points
+        if self.bin_size < 1.0:
+            bin_size = max(1, int(n_samples * self.bin_size))
+        else:
+            bin_size = max(1, int(self.bin_size))
+
+        if self.context_size < 1.0:
+            context_size = max(1, int(n_samples * self.context_size))
+        else:
+            context_size = max(1, int(self.context_size))
+
+        # Clamp to Chronos2 limits with warnings
+        if context_size > self.max_context_length:
+            warnings.warn(
+                f"context_size ({context_size}) exceeds max_context_length "
+                f"({self.max_context_length}). Clamping to {self.max_context_length}."
+            )
+            context_size = self.max_context_length
+
+        if bin_size > self.max_prediction_length:
+            warnings.warn(
+                f"bin_size ({bin_size}) exceeds max_prediction_length "
+                f"({self.max_prediction_length}). Clamping to {self.max_prediction_length}."
+            )
+            bin_size = self.max_prediction_length
+
         first_bin_size = context_size
 
         full_scores = np.zeros(n_samples)
