@@ -2,8 +2,8 @@ import numpy as np
 import math
 from .utils.slidingWindows import find_length_rank
 
-Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IForest', 'LOF', 'Sub_LOF', 'POLY', 'MatrixProfile', 'Sub_PCA', 'PCA', 'HBOS', 
-                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS']
+Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IForest', 'LOF', 'Sub_LOF', 'POLY', 'MatrixProfile', 'Sub_PCA', 'PCA', 'HBOS',
+                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos','Chronos2', 'MOMENT_ZS']
 Semisupervise_AD_Pool = ['Left_STAMPi', 'SAND', 'MCD', 'Sub_MCD', 'OCSVM', 'Sub_OCSVM', 'AutoEncoder', 'CNN', 'LSTMAD', 'TranAD', 'USAD', 'OmniAnomaly', 
                         'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'Chronos_2_AE']
 
@@ -362,6 +362,13 @@ def run_Lag_Llama(data, win_size=96, batch_size=64):
 def run_Chronos(data, win_size=50, batch_size=64):
     from .models.Chronos import Chronos
     clf = Chronos(win_size=win_size, prediction_length=1, input_c=data.shape[1], model_size='base', batch_size=batch_size)
+    clf.fit(data)
+    score = clf.decision_scores_
+    return score.ravel()
+
+def run_Chronos2(data, bin_size=0.03, context_size=0.25, error_metric="mae"):
+    from .models.Chronos2 import Chronos2
+    clf = Chronos2(bin_size=bin_size, context_size=context_size, error_metric=error_metric)
     clf.fit(data)
     score = clf.decision_scores_
     return score.ravel()
