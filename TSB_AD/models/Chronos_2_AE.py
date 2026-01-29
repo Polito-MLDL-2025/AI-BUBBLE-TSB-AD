@@ -361,7 +361,7 @@ class Chronos2AE(BaseDetector):
     def anomaly_score(self) -> np.ndarray:
         return self.__anomaly_score
 
-    def criterion(self, recon_x, x, mu=None, logvar=None, reduction='sum'):
+    def criterion(self, recon_x, x, mu=None, logvar=None, reduction='mean', beta=0.001):
         
         # Compute Reconstruction Loss
         recon_loss = F.mse_loss(recon_x, x, reduction=reduction)
@@ -370,10 +370,17 @@ class Chronos2AE(BaseDetector):
         if mu is None or logvar is None:
             return recon_loss
         
-        # If they are provided, computes VAE loss (Recon + KL).
-        kld_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        if reduction == 'mean':
-            kld_loss = kld_loss / x.shape[0] # Average over batch
+        # Analytical KLD: -0.5 * sum(1 + log(var) - mu^2 - var)
+        # We calculate it element-wise first
+        kld_element = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())
         
-        return recon_loss + kld_loss*0.0001
-    
+        if reduction == 'mean':
+            # Normalize KLD to match the scale of MSE.
+            # We take the mean over all dimensions (Batch, Patches, Latent_Dim).
+            # This makes KLD "average divergence per latent unit", comparable to 
+            # MSE's "average error per input unit".
+            kld_loss = torch.mean(kld_element)
+        else:
+            kld_loss = torch.sum(kld_element)
+        
+        return recon_loss + (beta * kld_loss)
