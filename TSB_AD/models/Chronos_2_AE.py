@@ -50,9 +50,13 @@ class VAEHead(nn.Module):
         )
 
     def reparameterize(self, mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mu + eps * std
+        # ! Are we sure? Double check later via debugging
+        if self.training:
+            std = torch.exp(0.5 * logvar)
+            eps = torch.randn_like(std)
+            return mu + eps * std
+        else:
+            return mu
 
     def forward(self, x):
         # x shape: [batch, seq_len, input_dim]
@@ -385,6 +389,8 @@ class Chronos2AE(BaseDetector):
         # We calculate it element-wise first
         kld_element = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())
         
+        #! Are we sure about this? Double check later with debugging
+        #! Also read the VAE papers again to be sure
         if reduction == 'mean':
             # Sum over Latent Dimension (dim=-1), Mean over Batch and Sequence (dim=0, 1)
             # This gives the average "Total Divergence per Vector" in the batch
