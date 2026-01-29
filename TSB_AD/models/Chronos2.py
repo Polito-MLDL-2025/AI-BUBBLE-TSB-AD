@@ -31,42 +31,44 @@ class Chronos2(BaseDetector):
         """
         Chronos2 model for anomaly detection using bin-based forecasting.
 
-        Supports both univariate and multivariate time series.
-        Uses native Chronos2 multivariate forecasting capabilities.
+        Supports both Chronos2's native univariate and multivariate time series.
 
-        Note: This approach assumes we have the full time series before analyzing
-        (no real-time detection), and that the initial context window portion
-        is assumed non-anomalous.
+        Args:
+            bin_size : float or int, optional (default=0.03)
+                Size of forecast bins for iterative prediction.
+                If < 1.0: Interpreted as ratio of data length (e.g., 0.03 = 3%).
+                If >= 1: Interpreted as absolute number of points (e.g., 64 points).
 
-        Parameters
-        ----------
-        bin_size : float or int, optional (default=0.03)
-            Size of forecast bins for iterative prediction.
-            If < 1.0: Interpreted as ratio of data length (e.g., 0.03 = 3%).
-            If >= 1: Interpreted as absolute number of points (e.g., 64 points).
+            context_size : float or int, optional (default=0.25)
+                Size of context window for forecasting.
+                If < 1.0: Interpreted as ratio of data length (e.g., 0.25 = 25%).
+                If >= 1: Interpreted as absolute number of points (e.g., 512 points).
 
-        context_size : float or int, optional (default=0.25)
-            Size of context window for forecasting.
-            If < 1.0: Interpreted as ratio of data length (e.g., 0.25 = 25%).
-            If >= 1: Interpreted as absolute number of points (e.g., 512 points).
+                Note: ratio-based windows approach assumes to know the lenght of the time
+                series in advance, i.e. that we have the full time series before analyzing it.
+                In other words no real-time detection, and that the initial context window portion
+                is assumed non-anomalous, which is reasonable according to 
+                    - Boniol et al. Dive into Time-Series Anomaly Detection: A Decade Review
+                    - Liu and Paparrizos, NeurIPS 2024, The Elephant in the Room: Towards A Reliable 
+                        ime-Series Anomaly Detection Benchmark
 
-        model_path : str, optional (default="amazon/chronos-2")
-            HuggingFace model path for Chronos2.
+            model_path : str, optional (default="amazon/chronos-2")
+                HuggingFace model path for Chronos2.
 
-        device : str, optional (default=None)
-            Device to use ('cuda' or 'cpu'). If None, auto-detects.
+            device : str, optional (default=None)
+                Device to use ('cuda' or 'cpu'). If None, auto-detects.
 
-        max_context_length : int, optional (default=8192)
-            Maximum allowed context length for Chronos2. Values exceeding this
-            will be clamped and a warning issued.
+            max_context_length : int, optional (default=8192)
+                Maximum allowed context length for Chronos2. Values exceeding this
+                will be clamped and a warning issued.
 
-        max_prediction_length : int, optional (default=1024)
-            Maximum allowed prediction/bin length for Chronos2. Values exceeding
-            this will be clamped and a warning issued.
+            max_prediction_length : int, optional (default=1024)
+                Maximum allowed prediction bin length for Chronos2. Values exceeding
+                this will be clamped and a warning issued.
 
-        error_metric : str, optional (default="mae")
-            Error metric to use for anomaly scoring. Either "mae" for mean
-            absolute error or "mse" for mean squared error.
+            error_metric : str, optional (default="mae")
+                Error metric to use for anomaly scoring. Either "mae" for mean
+                absolute error or "mse" for mean squared error.
         """
         super().__init__(contamination=0.1)
 
@@ -98,19 +100,17 @@ class Chronos2(BaseDetector):
         """
         Generate forecasts using Chronos2 pipeline.
 
-        Parameters
-        ----------
-        context : numpy array
-            Context data. For univariate: shape (n_timesteps, 1).
-            For multivariate: shape (n_timesteps, n_features).
+        Args:
+            context : numpy array
+                Context data. For univariate: shape (n_timesteps, 1).
+                For multivariate: shape (n_timesteps, n_features).
 
-        pred_len : int
-            Number of steps to forecast.
+            pred_len : int
+                Number of steps to forecast.
 
-        Returns
-        -------
-        pred : numpy array
-            Predictions with shape (pred_len, n_features).
+        Returns:
+            pred : numpy array
+                Predictions with shape (pred_len, n_features).
         """
         # Ensure context is 2D
         if context.ndim == 1:
@@ -164,20 +164,18 @@ class Chronos2(BaseDetector):
         """
         Fit the Chronos2 anomaly detector.
 
-        Uses true multivariate forecasting for multivariate data,
-        leveraging cross-channel dependencies.
+        While the most appropriate method is `fit_predict`, this method
+        has been implemented here for API consistency with Chronos 1.
 
-        Parameters
-        ----------
-        data : numpy array
-            Input data with shape (n_samples, n_features).
-            For univariate: n_features = 1.
-            For multivariate: n_features > 1.
+        Args:
+            data : numpy array
+                Input data with shape (n_samples, n_features).
+                For univariate: n_features = 1.
+                For multivariate: n_features > 1.
 
-        Returns
-        -------
-        self : object
-            Fitted estimator.
+        Returns:
+            self : object
+                Fitted estimator.
         """
         if data.ndim == 1:
             data = data.reshape(-1, 1)
