@@ -30,8 +30,12 @@ class VAEHead(nn.Module):
         super().__init__()
         
         # Encoder
-        self.fc_mu = nn.Linear(input_dim, latent_dim)
-        self.fc_var = nn.Linear(input_dim, latent_dim)
+        self.encoder_shared = nn.Sequential(
+            nn.Linear(input_dim, input_dim // 2),
+            nn.ReLU()
+        )
+        self.fc_mu = nn.Linear(input_dim // 2, latent_dim)
+        self.fc_var = nn.Linear(input_dim // 2, latent_dim)
         
         # Decoder
         self.decoder = nn.Sequential(
@@ -47,8 +51,9 @@ class VAEHead(nn.Module):
 
     def forward(self, x):
         # x shape: [batch, seq_len, input_dim]
-        mu = self.fc_mu(x)
-        logvar = self.fc_var(x)
+        xl = self.encoder_shared(x)
+        mu = self.fc_mu(xl)
+        logvar = self.fc_var(xl)
         z = self.reparameterize(mu, logvar)
         recon = self.decoder(z)
         return recon, mu, logvar
