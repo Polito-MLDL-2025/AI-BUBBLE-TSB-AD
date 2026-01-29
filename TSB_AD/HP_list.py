@@ -95,7 +95,6 @@ Multi_algo_HP_dict = {
         'head_type': ['ae', 'vae'],
         'latent_dim': [32, 64],
         'lr': [1e-3, 1e-4],
-        'epochs': [10]
     }
 }
 
@@ -257,7 +256,6 @@ Uni_algo_HP_dict = {
         'head_type': ['ae', 'vae'],
         'latent_dim': [32, 64],
         'lr': [1e-3, 1e-4],
-        'epochs': [10]
     }
 }
 
