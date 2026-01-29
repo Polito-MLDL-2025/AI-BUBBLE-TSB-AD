@@ -158,16 +158,17 @@ class ChronosAnomalyModel(nn.Module):
 
         # Get Embeddings
         with torch.no_grad():
-            encoder_outputs, loc_scale, _, _ = self.model.encode(
+            encoder_outputs, loc_scale, _, num_context_patches = self.model.encode(
                 context=context_flat,
                 group_ids=group_ids 
             )
 
             last_hidden_state = encoder_outputs[0]  # Shape: [B*V, Num_Patches+Tokens, Dim]
-            # Filter [REG] Token
-            if getattr(self.model.chronos_config, "use_reg_token", False):
-                last_hidden_state = last_hidden_state[:, :-1, :]
             
+            # Filter [REG] Token and future patches
+            last_hidden_state = last_hidden_state[:, :num_context_patches, :]
+            
+            # Prepare loc and scale
             loc, scale = loc_scale
 
             # Reshape loc/scale to match sequence length
