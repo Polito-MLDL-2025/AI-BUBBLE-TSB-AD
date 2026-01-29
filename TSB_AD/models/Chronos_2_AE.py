@@ -372,7 +372,7 @@ class Chronos2AE(BaseDetector):
         return self.__anomaly_score
 
     # ! May need to try to tune beta
-    def criterion(self, recon_x, x, mu=None, logvar=None, reduction='mean', beta=0.001):
+    def criterion(self, recon_x, x, mu=None, logvar=None, reduction='mean', beta=0.01):
         
         # Compute Reconstruction Loss
         recon_loss = F.mse_loss(recon_x, x, reduction=reduction)
@@ -386,12 +386,16 @@ class Chronos2AE(BaseDetector):
         kld_element = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())
         
         if reduction == 'mean':
+            # Sum over Latent Dimension (dim=-1), Mean over Batch and Sequence (dim=0, 1)
+            # This gives the average "Total Divergence per Vector" in the batch
+            kld_per_vector = torch.sum(kld_element, dim=-1) 
+            
             # Normalize KLD to match the scale of MSE.
             # We take the mean over all dimensions (Batch, Patches, Latent_Dim).
             # This makes KLD "average divergence per latent unit", comparable to 
             # MSE's "average error per input unit".
-            kld_loss = torch.mean(kld_element)
+            kld_loss = torch.mean(kld_per_vector)
         else:
             kld_loss = torch.sum(kld_element)
-        
+
         return recon_loss + (beta * kld_loss)
