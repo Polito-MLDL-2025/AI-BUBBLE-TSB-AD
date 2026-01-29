@@ -26,6 +26,7 @@ class Chronos2(BaseDetector):
         device=None,
         max_context_length=CHRONOS2_MAX_CONTEXT_LENGTH,
         max_prediction_length=CHRONOS2_MAX_PREDICTION_LENGTH,
+        error_metric="mae",
     ):
         """
         Chronos2 model for anomaly detection using bin-based forecasting.
@@ -62,6 +63,10 @@ class Chronos2(BaseDetector):
         max_prediction_length : int, optional (default=1024)
             Maximum allowed prediction/bin length for Chronos2. Values exceeding
             this will be clamped and a warning issued.
+
+        error_metric : str, optional (default="mae")
+            Error metric to use for anomaly scoring. Either "mae" for mean
+            absolute error or "mse" for mean squared error.
         """
         super().__init__(contamination=0.1)
 
@@ -71,6 +76,10 @@ class Chronos2(BaseDetector):
         self.context_size = context_size
         self.max_context_length = max_context_length
         self.max_prediction_length = max_prediction_length
+        self.error_metric = error_metric.lower()
+
+        if self.error_metric not in ("mae", "mse"):
+            raise ValueError(f"error_metric must be 'mae' or 'mse', got {error_metric}")
 
         self.model_path = model_path
 
@@ -247,8 +256,11 @@ class Chronos2(BaseDetector):
             raise ValueError(f"Prediction length mismatch: {len(predictions)} vs {len(actuals)}")
 
         # Compute error per timestep across all features
-        # Option: Mean absolute error across features
-        errors = np.abs(actuals - predictions)  # (total_steps, n_features)
+        if self.error_metric == "mae":
+            errors = np.abs(actuals - predictions)  # (total_steps, n_features)
+        else:  # mse
+            errors = (actuals - predictions) ** 2  # (total_steps, n_features)
+        
         errors_per_timestep = errors.mean(axis=1)  # (total_steps,) - average across features
 
         # Map errors to original indices

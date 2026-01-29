@@ -87,7 +87,8 @@ Multi_algo_HP_dict = {
     },
     'Chronos2': {
         'bin_size': [0.03, 0.05, 0.1],
-        'context_size': [0.2, 0.25, 0.3]
+        'context_size': [0.2, 0.25, 0.3],
+        'error_metric': ['mae', 'mse']
     },
     'Chronos_2_AE': {
         'slidingWindow': [50, 100],
