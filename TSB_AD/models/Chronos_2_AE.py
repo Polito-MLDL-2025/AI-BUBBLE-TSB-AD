@@ -25,6 +25,11 @@ class VAEHead(nn.Module):
         input_dim (int): The dimensionality of the input embeddings from the transformer.
         latent_dim (int): The dimensionality of the latent space. Defaults to 32.
         output_dim (int): The dimensionality of the reconstructed output. Defaults to 1.
+
+    References:
+        - Kingma, D. P., & Welling, M. (2013). Auto-Encoding Variational Bayes.
+            Implementation from: https://github.com/Jackson-Kang/Pytorch-VAE-tutorial.git
+        - PyTorch VAE Library: https://github.com/AntixK/PyTorch-VAE/blob/master/models/beta_vae.py
     """
     def __init__(self, input_dim, latent_dim=32, output_dim=1):
         super().__init__()
