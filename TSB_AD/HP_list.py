@@ -86,8 +86,8 @@ Multi_algo_HP_dict = {
         'win_size': [50, 100, 150]
     },
     'Chronos2': {
-        'bin_size': [0.03, 0.05, 0.1],
-        'context_size': [0.2, 0.25, 0.3],
+        'bin_size': [0.03, 0.05, 0.1, 100, 150],
+        'context_size': [0.2, 0.25, 0.3, 100, 150],
         'error_metric': ['mae', 'mse']
     },
     'Chronos_2_AE': {
@@ -95,7 +95,7 @@ Multi_algo_HP_dict = {
         'head_type': ['ae', 'vae'],
         'latent_dim': [32, 64],
         'lr': [1e-3, 1e-4],
-        'epochs': [5, 10]
+        'epochs': [10]
     }
 }
 
@@ -239,8 +239,9 @@ Uni_algo_HP_dict = {
         'win_size': [50, 100, 150]
     },
     'Chronos2': {
-        'bin_size': [0.03, 0.05, 0.1],
-        'context_size': [0.2, 0.25, 0.3]
+        'bin_size': [0.03, 0.05, 0.1, 100, 150],
+        'context_size': [0.2, 0.25, 0.3, 100, 150],
+        'error_metric': ['mae', 'mse']
     },
     'TimesFM': {
         'win_size': [32, 64, 96]
@@ -256,7 +257,7 @@ Uni_algo_HP_dict = {
         'head_type': ['ae', 'vae'],
         'latent_dim': [32, 64],
         'lr': [1e-3, 1e-4],
-        'epochs': [5, 10]
+        'epochs': [10]
     }
 }
 
