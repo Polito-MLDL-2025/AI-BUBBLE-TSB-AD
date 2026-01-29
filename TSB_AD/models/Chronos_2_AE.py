@@ -56,8 +56,7 @@ class VAEHead(nn.Module):
 class AEHead(nn.Module):
     """
     A standard Autoencoder (AE) head with increased complexity, designed to process transformer embeddings.
-    It learns a compressed, latent representation of the input and then reconstructs it,
-    aiming to capture essential features for anomaly detection.
+    It learns a compressed, latent representation of the input and then reconstructs it.
 
     Args:
         input_dim (int): The dimensionality of the input embeddings from the transformer.
@@ -129,7 +128,16 @@ class ChronosAnomalyModel(nn.Module):
 
     def forward(self, context_tensor):
         """
-        context_tensor: [Batch, N_Vars, Seq_Len]
+        Forward pass through the Chronos model and the anomaly detection head.
+        
+        Args:
+            context_tensor: [Batch, N_Vars, Seq_Len]
+
+        Returns:
+            recon: Reconstructed embeddings from the head.
+            mu: Latent mean (for VAE) or None (for AE).
+            logvar: Latent log-variance (for VAE) or None (for AE).
+            combined_input: Original embeddings concatenated with loc and scale.
         """
         # Handle Input Shapes
         # We expect a 3D tensor: [Batch, Variables, Time]
@@ -290,9 +298,6 @@ class Chronos2AE(BaseDetector):
                 break
             
             epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f} | Val: {avg_val_loss:.4f} | Early stopping: {self.early_stopping.counter}")
-        
-        # self.decision_scores_ = self.decision_function(data)
-        # self._process_decision_scores()
 
         return self
 
