@@ -93,7 +93,6 @@ class Chronos2(BaseDetector):
         self.pipeline = Chronos2Pipeline.from_pretrained(
             self.model_path,
             device_map=self.device,
-            torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
         )
 
     def chronos2_forecast(self, context, pred_len):
