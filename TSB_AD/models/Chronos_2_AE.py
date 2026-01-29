@@ -366,6 +366,7 @@ class Chronos2AE(BaseDetector):
     def anomaly_score(self) -> np.ndarray:
         return self.__anomaly_score
 
+    # ! May need to try to tune beta
     def criterion(self, recon_x, x, mu=None, logvar=None, reduction='mean', beta=0.001):
         
         # Compute Reconstruction Loss
