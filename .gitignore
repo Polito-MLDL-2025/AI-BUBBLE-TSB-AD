@@ -13,7 +13,8 @@ score
 eval/
 .python-version
 Runs/
-.json
+.json\
+.vscode
 
 # Include these
 !Datasets/File_List/filtered_file_list_M.csv
