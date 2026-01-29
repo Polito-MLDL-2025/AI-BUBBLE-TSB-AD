@@ -120,7 +120,7 @@ class ChronosAnomalyModel(nn.Module):
         # Get dimensions
         backbone_dim = self.model.config.d_model
         
-        # Initialize Head
+        # Initialize head
         if head_type == 'vae':
             self.head = VAEHead(input_dim=backbone_dim + 2, latent_dim=latent_dim, output_dim=backbone_dim + 2)
         elif head_type == 'ae':
@@ -291,6 +291,7 @@ class Chronos2AE(BaseDetector):
 
             self.model.train()
 
+            # implement early stopping
             self.early_stopping(avg_val_loss, self.model)
             if self.early_stopping.early_stop:
                 print("\tEarly stopping")
@@ -327,7 +328,7 @@ class Chronos2AE(BaseDetector):
         window_scores = np.concatenate(window_scores)
 
         # Reshape to [Num_Windows, Num_Vars]
-        # We know that for each window in the batch, we processed V variables sequentially.
+        # We know that for each window in the batch, we processed V variables sequentially
         # So the flat structure is [W0_V0, W0_V1, ..., W0_Vm, W1_V0, ...]
         if X.ndim > 1 and X.shape[1] > 1:
             num_vars = X.shape[1]
@@ -340,8 +341,8 @@ class Chronos2AE(BaseDetector):
             window_scores = window_scores.mean(axis=1)
 
         # Map window-level scores back to original time series points.
-        # Since we use a sliding window with stride=1, each point is covered by multiple windows.
-        # We aggregate these scores by averaging them.
+        # Since we use a sliding window with stride=1, each point is covered by multiple windows,
+        # we aggregate these scores by averaging them
         final_scores = np.zeros(len(X))
         counts = np.zeros(len(X))
         
@@ -351,8 +352,9 @@ class Chronos2AE(BaseDetector):
             end_idx = start_idx + self.window_size
             final_scores[start_idx: end_idx] += score
             counts[start_idx: end_idx] += 1
-        
         counts[counts == 0] = 1 # Avoid division by 0
+        
+        # Store final anomaly scores
         self.__anomaly_score = final_scores / counts
         return self.__anomaly_score
     
@@ -360,16 +362,15 @@ class Chronos2AE(BaseDetector):
         return self.__anomaly_score
 
     def criterion(self, recon_x, x, mu=None, logvar=None, reduction='sum'):
-        """
-        Computes the loss.
-        If mu and logvar are provided, computes VAE loss (Recon + KL).
-        If they are None, computes AE loss (Recon only).
-        """
+        
+        # Compute Reconstruction Loss
         recon_loss = F.mse_loss(recon_x, x, reduction=reduction)
         
+        # If mu and logvar are None, computes AE loss (Recon only).
         if mu is None or logvar is None:
             return recon_loss
-            
+        
+        # If they are provided, computes VAE loss (Recon + KL).
         kld_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         if reduction == 'mean':
             kld_loss = kld_loss / x.shape[0] # Average over batch
