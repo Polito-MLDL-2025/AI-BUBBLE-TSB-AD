@@ -35,6 +35,17 @@ def process_type(ts_type):
         os.makedirs(folder_path, exist_ok=True)
         with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
             zf.extractall(folder_path)
+        
+        # Handle nested folder structure: if a folder with the same name was created, flatten it
+        nested_folder = os.path.join(folder_path, f"TSB-AD-{ts_type}")
+        if os.path.isdir(nested_folder):
+            for filename in os.listdir(nested_folder):
+                src = os.path.join(nested_folder, filename)
+                dst = os.path.join(folder_path, filename)
+                if os.path.isfile(src):
+                    os.rename(src, dst)
+            os.rmdir(nested_folder)
+        
         print(f"Downloaded and extracted TSB-AD-{ts_type}")
     
     output_name = f"TSB-AD-{ts_type}-filtered.csv"
