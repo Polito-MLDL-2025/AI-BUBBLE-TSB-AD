@@ -191,7 +191,6 @@ class ChronosAnomalyModel(nn.Module):
 
 class Chronos2AE(BaseDetector):
     def __init__(self, 
-                 ts_dim = 1,
                  slidingWindow=100,
                  head_type='vae',
                  latent_dim=32,
@@ -205,7 +204,6 @@ class Chronos2AE(BaseDetector):
         self.cuda = True
         self.device = get_gpu(self.cuda)
 
-        self.ts_dim = ts_dim # Time Series dimension
         self.window_size = slidingWindow
         self.head_type = head_type
         self.latent_dim = latent_dim
@@ -378,7 +376,3 @@ class Chronos2AE(BaseDetector):
         
         return recon_loss + kld_loss*0.0001
     
-    def param_statistic(self, save_file):
-        model_stats = torchinfo.summary(self.model, self.input_shape, verbose=0)
-        with open(save_file, 'w') as f:
-            f.write(str(model_stats))
