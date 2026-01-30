@@ -277,7 +277,7 @@ class Chronos2AE(BaseDetector):
                 
                 # Loss Calculation
                 # Loss was high because of how it was summed for each element in the batch.
-                loss = self.criterion(recon, target, mu, logvar, reduction='mean')
+                loss = self.criterion(recon, target, mu, logvar)
                 
                 optimizer.zero_grad()
                 loss.backward()
@@ -376,11 +376,14 @@ class Chronos2AE(BaseDetector):
         return self.__anomaly_score
 
     # ! May need to try to tune beta
-    def criterion(self, recon_x, x, mu=None, logvar=None, reduction='mean', beta=0.01):
-        
+    def criterion(self, recon_x, x, mu=None, logvar=None, beta=1.0):
+        # x, recon_x shaope: [Batch, Seq_Len, Dim] -- NOTE: Seq_Len here is actually Num_Patches
+        # e.g. [32, 4, 770] for Batch=32, Num_Patches=4, Backbone_Dim(Chronos 2 default)=768 + 2 (loc and scale)
+
         # Compute Reconstruction Loss
-        recon_loss = F.mse_loss(recon_x, x, reduction=reduction)
-        
+        mse = F.mse_loss(recon_x, x, reduction='none') # mse shape: [32, 4, 770]
+        recon_loss = torch.sum(mse, dim=2).mean()
+
         # If mu and logvar are None, computes AE loss (Recon only).
         if mu is None or logvar is None:
             return recon_loss
@@ -391,17 +394,14 @@ class Chronos2AE(BaseDetector):
         
         #! Are we sure about this? Double check later with debugging
         #! Also read the VAE papers again to be sure
-        if reduction == 'mean':
-            # Sum over Latent Dimension (dim=-1), Mean over Batch and Sequence (dim=0, 1)
-            # This gives the average "Total Divergence per Vector" in the batch
-            kld_per_vector = torch.sum(kld_element, dim=-1) 
-            
-            # Normalize KLD to match the scale of MSE.
-            # We take the mean over all dimensions (Batch, Patches, Latent_Dim).
-            # This makes KLD "average divergence per latent unit", comparable to 
-            # MSE's "average error per input unit".
-            kld_loss = torch.mean(kld_per_vector)
-        else:
-            kld_loss = torch.sum(kld_element)
+        # Sum over Latent Dimension (dim=-1), Mean over Batch and Sequence (dim=0, 1)
+        # This gives the average "Total Divergence per Vector" in the batch
+        kld_per_vector = torch.sum(kld_element, dim=-1) 
+        
+        # Normalize KLD to match the scale of MSE.
+        # We take the mean over all dimensions (Batch, Patches, Latent_Dim).
+        # This makes KLD "average divergence per latent unit", comparable to 
+        # MSE's "average error per input unit".
+        kld_loss = torch.mean(kld_per_vector)
 
         return recon_loss + (beta * kld_loss)
