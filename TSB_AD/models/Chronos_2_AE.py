@@ -210,6 +210,7 @@ class Chronos2AE(BaseDetector):
                  latent_dim=32,
                  batch_size=32,
                  lr=1e-3,
+                 beta=1.0,
                  epochs=50,
                  validation_size=0.2,
                  patience=5,
@@ -223,6 +224,7 @@ class Chronos2AE(BaseDetector):
         self.latent_dim = latent_dim
         self.batch_size = batch_size
         self.lr = lr
+        self.beta = beta
         self.epochs = epochs
         self.validation_size = validation_size
         self.patience = patience
@@ -376,7 +378,7 @@ class Chronos2AE(BaseDetector):
         return self.__anomaly_score
 
     # ! May need to try to tune beta
-    def criterion(self, recon_x, x, mu=None, logvar=None, beta=1.0):
+    def criterion(self, recon_x, x, mu=None, logvar=None, beta=None):
         # x, recon_x shaope: [Batch, Seq_Len, Dim] -- NOTE: Seq_Len here is actually Num_Patches
         # e.g. [32, 4, 770] for Batch=32, Num_Patches=4, Backbone_Dim(Chronos 2 default)=768 + 2 (loc and scale)
 
@@ -403,5 +405,8 @@ class Chronos2AE(BaseDetector):
         # This makes KLD "average divergence per latent unit", comparable to 
         # MSE's "average error per input unit".
         kld_loss = torch.mean(kld_per_vector)
+
+        if beta is None:
+            beta = self.beta
 
         return recon_loss + (beta * kld_loss)

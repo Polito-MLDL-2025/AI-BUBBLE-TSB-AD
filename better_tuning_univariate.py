@@ -87,8 +87,35 @@ if __name__ == '__main__':
 
     # Creates the parameters combinations
     Det_HP = Uni_algo_HP_dict[args.AD_Name]
-    keys, values = zip(*Det_HP.items())
-    combinations = [dict(zip(keys, v)) for v in product(*values)]
+    def build_combinations(det_hp):
+        """Build parameter combinations supporting conditional mappings.
+        Conditional format expected: {'conditional': {cond_param: {cond_value: {param: [vals]}}}}
+        Example: 'conditional': {'head_type': {'vae': {'beta': [..]}, 'ae': {}}}
+        """
+        conditional = det_hp.get('conditional')
+        if not conditional:
+            keys, values = zip(*det_hp.items())
+            return [dict(zip(keys, v)) for v in product(*values)]
+
+        combos = []
+        # Expecting a single conditional parameter (e.g., 'head_type')
+        cond_param = next(iter(conditional))
+        mapping = conditional[cond_param]
+        for cond_value in det_hp[cond_param]:
+            # build local param grid excluding 'conditional' and using single cond_value
+            local = {k: v for k, v in det_hp.items() if k != 'conditional' and k != cond_param}
+            local[cond_param] = [cond_value]
+            # merge conditional options for this cond_value
+            extra = mapping.get(cond_value, {})
+            for k, v in extra.items():
+                local[k] = v
+            if not local:
+                continue
+            keys, values = zip(*local.items())
+            combos.extend([dict(zip(keys, v)) for v in product(*values)])
+        return combos
+
+    combinations = build_combinations(Det_HP)
 
     file_list = pd.read_csv(args.file_list)['file_name'].values
     write_csv = []
