@@ -377,7 +377,6 @@ class Chronos2AE(BaseDetector):
     def anomaly_score(self) -> np.ndarray:
         return self.__anomaly_score
 
-    # ! May need to try to tune beta
     def criterion(self, recon_x, x, mu=None, logvar=None, beta=None):
         # x, recon_x shaope: [Batch, Seq_Len, Dim] -- NOTE: Seq_Len here is actually Num_Patches
         # e.g. [32, 4, 770] for Batch=32, Num_Patches=4, Backbone_Dim(Chronos 2 default)=768 + 2 (loc and scale)
