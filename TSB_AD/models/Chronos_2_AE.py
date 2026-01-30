@@ -297,7 +297,7 @@ class Chronos2AE(BaseDetector):
                     for batch, _ in val_loader:
                         batch = batch.permute(0, 2, 1).to(self.device)
                         recon, mu, logvar, original_embeddings = self.model(batch)
-                        loss = self.criterion(recon, original_embeddings, mu, logvar, reduction='mean')
+                        loss = self.criterion(recon, original_embeddings, mu, logvar)
                         val_loss += loss.item()
                 avg_val_loss = val_loss / len(val_loader)
             else:
