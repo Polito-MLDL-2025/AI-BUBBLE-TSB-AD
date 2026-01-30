@@ -382,28 +382,18 @@ class Chronos2AE(BaseDetector):
         # e.g. [32, 4, 770] for Batch=32, Num_Patches=4, Backbone_Dim(Chronos 2 default)=768 + 2 (loc and scale)
 
         # Compute Reconstruction Loss
-        mse = F.mse_loss(recon_x, x, reduction='none') # mse shape: [32, 4, 770]
-        recon_loss = torch.sum(mse, dim=2).mean()
+        recon_per_element = F.mse_loss(recon_x, x, reduction='none') # shape: [32, 4, 770]
+        recon_per_vector = recon_per_element.sum(dim=-1)  # sum over last dim -> [32, 4]
+        recon_loss = recon_per_vector.mean()
 
         # If mu and logvar are None, computes AE loss (Recon only).
         if mu is None or logvar is None:
             return recon_loss
         
         # Analytical KLD: -0.5 * sum(1 + log(var) - mu^2 - var)
-        # We calculate it element-wise first
-        kld_element = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())
-        
-        #! Are we sure about this? Double check later with debugging
-        #! Also read the VAE papers again to be sure
-        # Sum over Latent Dimension (dim=-1), Mean over Batch and Sequence (dim=0, 1)
-        # This gives the average "Total Divergence per Vector" in the batch
-        kld_per_vector = torch.sum(kld_element, dim=-1) 
-        
-        # Normalize KLD to match the scale of MSE.
-        # We take the mean over all dimensions (Batch, Patches, Latent_Dim).
-        # This makes KLD "average divergence per latent unit", comparable to 
-        # MSE's "average error per input unit".
-        kld_loss = torch.mean(kld_per_vector)
+        kld_per_element = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp()) # shape: [32, 4, latent_dim(32 or 64)]
+        kld_per_vector = kld_per_element.sum(dim=-1)  # sum over last dim -> [32, 4]
+        kld_loss = kld_per_vector.mean()
 
         if beta is None:
             beta = self.beta
