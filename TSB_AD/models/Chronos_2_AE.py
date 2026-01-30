@@ -303,7 +303,7 @@ class Chronos2AE(BaseDetector):
                         val_loss += loss.item()
                 avg_val_loss = val_loss / len(val_loader)
             else:
-                avg_val_loss = avg_loss
+                avg_val_loss = float('inf')
 
             self.model.train()
 
