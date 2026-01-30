@@ -125,7 +125,7 @@ Optimal_Multi_algo_HP_dict = {
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50},
     'Chronos2': {'bin_size': 0.03, 'context_size': 0.25},
-    'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'ae', 'latent_dim': 64, 'lr': 0.0001, 'epochs': 10},
+    'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'ae', 'latent_dim': 64, 'lr': 0.0001},
 }
 
 
@@ -297,5 +297,5 @@ Optimal_Uni_algo_HP_dict = {
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},
     'M2N2': {},
-    'Chronos_2_AE': {'slidingWindow': 50, 'head_type': 'vae', 'latent_dim': 64, 'lr': 0.001, 'epochs': 10}
+    'Chronos_2_AE': {'slidingWindow': 50, 'head_type': 'vae', 'latent_dim': 64, 'lr': 0.001}
 }

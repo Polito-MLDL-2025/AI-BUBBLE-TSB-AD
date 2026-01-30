@@ -210,9 +210,9 @@ class Chronos2AE(BaseDetector):
                  latent_dim=32,
                  batch_size=32,
                  lr=1e-3,
-                 epochs=10,
+                 epochs=50,
                  validation_size=0.2,
-                 patience=3,
+                 patience=5,
                  stride=1):
         super().__init__()
         self.cuda = True
