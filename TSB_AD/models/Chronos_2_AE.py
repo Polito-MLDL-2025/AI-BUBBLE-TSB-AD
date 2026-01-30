@@ -60,9 +60,9 @@ class VAEHead(nn.Module):
 
     def forward(self, x):
         # x shape: [batch, seq_len, input_dim]
-        xl = self.encoder_shared(x)
-        mu = self.fc_mu(xl)
-        logvar = self.fc_var(xl)
+        x_shared = self.encoder_shared(x)
+        mu = self.fc_mu(x_shared)
+        logvar = self.fc_var(x_shared)
         z = self.reparameterize(mu, logvar)
         recon = self.decoder(z)
         return recon, mu, logvar
