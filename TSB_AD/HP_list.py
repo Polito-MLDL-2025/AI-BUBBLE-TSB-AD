@@ -246,7 +246,9 @@ Uni_algo_HP_dict = {
     'Chronos2': {
         'bin_size': [0.03, 0.05, 0.1, 100, 150],
         'context_size': [0.2, 0.25, 0.3, 100, 150],
-        'error_metric': ['mae', 'mse']
+
+        # Since VUS-PR is ranking based, MAE and MSE will give the same VUS-PR: they will return different values, but the order will be the same. (This is true only for uni-variate)
+        'error_metric': ['mse'] # We keep only 'mse' to reduce the HP combinations then
     },
     'TimesFM': {
         'win_size': [32, 64, 96]

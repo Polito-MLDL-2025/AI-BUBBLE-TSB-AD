@@ -213,7 +213,6 @@ class Chronos2(BaseDetector):
 
         full_scores = np.zeros(n_samples)
 
-        # Process all channels together (multivariate forecasting)
         predictions = []
         actuals = []
         indices_map = []
