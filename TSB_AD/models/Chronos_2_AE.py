@@ -239,6 +239,11 @@ class Chronos2AE(BaseDetector):
         )
 
     def fit(self, data, y=None):
+        # We use the first 80% of time steps for training and the subsequent 20%
+        # for validation, rather than shuffling windows randomly. Why not shufflying? 
+        # With sliding windows (stride=1), adjacent windows share ~99% of the same
+        # data points. Random shuffling would put Window A (t[0:100]) in Train and
+        # Window B (t[1:101]) in Val, causing a massive leakage. 
         split_idx = int((1-self.validation_size)*len(data)) # Using 80% training, 20% validation
         tsTrain = data[:split_idx]
         tsValid = data[split_idx:]
