@@ -41,6 +41,14 @@ print(avg_data)
 rankings = avg_data.rank(ascending=False)
 print(f"\nTarget Model Rank: {int(rankings[MODEL_NAME])} / {len(rankings)}")
 
+# %% Dataset-wise Average VUS-PR Calculation
+data_per_type = merged_data[[MODEL_NAME]].reset_index()
+data_per_type = data_per_type.sort_values([MODEL_NAME], ascending=[False])
+data_per_type['dataset'] = data_per_type['file'].apply(lambda x: x.split('_')[1])
+data_per_type = data_per_type.groupby('dataset').mean([MODEL_NAME])
+data_per_type = data_per_type.sort_values([MODEL_NAME], ascending=[False])
+display(data_per_type)
+
 # %% Plot VUS-PR Score Distribution
 if merged_data is not None:
     # Order the columns based on the average score (ranking)
