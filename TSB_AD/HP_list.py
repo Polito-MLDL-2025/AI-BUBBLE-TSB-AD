@@ -306,7 +306,7 @@ Optimal_Uni_algo_HP_dict = {
     'OFA': {'win_size': 50},
     'Lag_Llama': {'win_size': 96},
     'Chronos': {'win_size': 100},
-    'Chronos2': {'bin_size': 0.03, 'context_size': 0.25},
+    'Chronos2': {'bin_size': 150, 'context_size': 0.2, 'error_metric': 'mae'},
     'TimesFM': {'win_size': 96},
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},
