@@ -130,7 +130,7 @@ Optimal_Multi_algo_HP_dict = {
     'TimesNet': {'win_size': 96, 'lr': 0.0001},
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50},
-    'Chronos2': {'bin_size': 0.03, 'context_size': 0.25},
+    'Chronos2': {'bin_size': 150, 'context_size': 150, 'error_metric': 'mse'},
     'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'ae', 'latent_dim': 64, 'lr': 0.0001, 'beta': 1.0},
 }
 
