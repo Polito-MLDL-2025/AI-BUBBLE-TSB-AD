@@ -218,14 +218,20 @@ if __name__ == '__main__':
         df_results = pd.DataFrame(write_csv, columns=['file', 'HP', 'AUC-PR', 'AUC-ROC', 'VUS-PR', 'VUS-ROC', 'Standard-F1', 'PA-F1', 'Event-based-F1', 'R-based-F1', 'Affiliation-F'])
         df_results.to_csv(save_file_name, index=False, mode=mode, header=header)
 
- # Compute and print the best hyperparameters based on average VUS-PR across all datasets
+    # Compute and print the best hyperparameters based on average VUS-PR across the datasets in the provided file list
     full_df = pd.read_csv(save_file_name)
-    if not full_df.empty and 'HP' in full_df.columns and 'VUS-PR' in full_df.columns:
+    if not full_df.empty and 'file' in full_df.columns and 'HP' in full_df.columns and 'VUS-PR' in full_df.columns:
         try:
-            best_hp = full_df.groupby(['HP'])['VUS-PR'].mean().idxmax()
-            best_avg_score = full_df.groupby(['HP'])['VUS-PR'].mean().max()
-            print(f"\nBest Hyperparameters (average VUS-PR across datasets): {best_hp}")
-            print(f"Average VUS-PR: {best_avg_score:.4f}")
+            # Use the file list that was passed to the script to filter results
+            flist = set(file_list) if 'file_list' in locals() else set(pd.read_csv(args.file_list)['file_name'].values)
+            filtered_df = full_df[full_df['file'].isin(flist)]
+            if filtered_df.empty:
+                print("\nNo matching files found in results to compute best hyperparameters.")
+            else:
+                best_hp = filtered_df.groupby(['HP'])['VUS-PR'].mean().idxmax()
+                best_avg_score = filtered_df.groupby(['HP'])['VUS-PR'].mean().max()
+                print(f"\nBest Hyperparameters (average VUS-PR across selected datasets): {best_hp}")
+                print(f"Average VUS-PR: {best_avg_score:.4f}")
         except Exception as e:
             print(f"\nCould not compute best hyperparameters: {e}")
     else:
