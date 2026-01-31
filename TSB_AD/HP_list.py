@@ -248,7 +248,7 @@ Uni_algo_HP_dict = {
         'context_size': [0.2, 0.25, 0.3, 100, 150],
 
         # Since VUS-PR is ranking based, MAE and MSE will give the same VUS-PR: they will return different values, but the order will be the same. (This is true only for uni-variate)
-        'error_metric': ['mse'] # We keep only 'mse' to reduce the HP combinations then
+        'error_metric': ['mae'] # We keep only 'mae' to reduce the HP combinations then, abs() should be easier to compute considering no backpropagation is needed
     },
     'TimesFM': {
         'win_size': [32, 64, 96]
