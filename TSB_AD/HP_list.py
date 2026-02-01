@@ -131,7 +131,7 @@ Optimal_Multi_algo_HP_dict = {
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50},
     'Chronos2': {'bin_size': 150, 'context_size': 150, 'error_metric': 'mse'},
-    'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'ae', 'latent_dim': 64, 'lr': 0.0001, 'beta': 1.0},
+    'Chronos_2_AE': {'slidingWindow': 100, 'latent_dim': 64, 'lr': 0.001, 'head_type': 'vae', 'beta': 2.0},
 }
 
 
