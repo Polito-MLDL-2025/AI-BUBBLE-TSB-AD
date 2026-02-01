@@ -1,4 +1,3 @@
-__pycache__
 *.egg-info
 build
 run_scripts
@@ -13,11 +12,9 @@ score
 eval/
 .python-version
 Runs/
-.json\
-.vscode
+.json
+__pycache__
+.vscode/
 
 # Include these
-!Datasets/File_List/filtered_file_list_M.csv
-!Datasets/File_List/filtered_file_list_M.csv
-!Datasets/File_List/tuning-U-filter.csv
-!Datasets/File_List/tuning-M-filter.csv
+!Datasets/File_List/*-filtered.csv

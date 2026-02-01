@@ -25,13 +25,22 @@ class VAEHead(nn.Module):
         input_dim (int): The dimensionality of the input embeddings from the transformer.
         latent_dim (int): The dimensionality of the latent space. Defaults to 32.
         output_dim (int): The dimensionality of the reconstructed output. Defaults to 1.
+
+    References:
+        - Kingma, D. P., & Welling, M. (2013). Auto-Encoding Variational Bayes.
+            Implementation from: https://github.com/Jackson-Kang/Pytorch-VAE-tutorial.git
+        - PyTorch VAE Library: https://github.com/AntixK/PyTorch-VAE/blob/master/models/beta_vae.py
     """
     def __init__(self, input_dim, latent_dim=32, output_dim=1):
         super().__init__()
         
         # Encoder
-        self.fc_mu = nn.Linear(input_dim, latent_dim)
-        self.fc_var = nn.Linear(input_dim, latent_dim)
+        self.encoder_shared = nn.Sequential(
+            nn.Linear(input_dim, input_dim // 2),
+            nn.ReLU()
+        )
+        self.fc_mu = nn.Linear(input_dim // 2, latent_dim)
+        self.fc_var = nn.Linear(input_dim // 2, latent_dim)
         
         # Decoder
         self.decoder = nn.Sequential(
@@ -41,14 +50,19 @@ class VAEHead(nn.Module):
         )
 
     def reparameterize(self, mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mu + eps * std
+        # ! Are we sure? Double check later via debugging
+        if self.training:
+            std = torch.exp(0.5 * logvar)
+            eps = torch.randn_like(std)
+            return mu + eps * std
+        else:
+            return mu
 
     def forward(self, x):
         # x shape: [batch, seq_len, input_dim]
-        mu = self.fc_mu(x)
-        logvar = self.fc_var(x)
+        x_shared = self.encoder_shared(x)
+        mu = self.fc_mu(x_shared)
+        logvar = self.fc_var(x_shared)
         z = self.reparameterize(mu, logvar)
         recon = self.decoder(z)
         return recon, mu, logvar
@@ -56,8 +70,7 @@ class VAEHead(nn.Module):
 class AEHead(nn.Module):
     """
     A standard Autoencoder (AE) head with increased complexity, designed to process transformer embeddings.
-    It learns a compressed, latent representation of the input and then reconstructs it,
-    aiming to capture essential features for anomaly detection.
+    It learns a compressed, latent representation of the input and then reconstructs it.
 
     Args:
         input_dim (int): The dimensionality of the input embeddings from the transformer.
@@ -121,7 +134,7 @@ class ChronosAnomalyModel(nn.Module):
         # Get dimensions
         backbone_dim = self.model.config.d_model
         
-        # Initialize Head
+        # Initialize head
         if head_type == 'vae':
             self.head = VAEHead(input_dim=backbone_dim + 2, latent_dim=latent_dim, output_dim=backbone_dim + 2)
         elif head_type == 'ae':
@@ -129,7 +142,16 @@ class ChronosAnomalyModel(nn.Module):
 
     def forward(self, context_tensor):
         """
-        context_tensor: [Batch, N_Vars, Seq_Len]
+        Forward pass through the Chronos model and the anomaly detection head.
+        
+        Args:
+            context_tensor: [Batch, N_Vars, Seq_Len]
+
+        Returns:
+            recon: Reconstructed embeddings from the head.
+            mu: Latent mean (for VAE) or None (for AE).
+            logvar: Latent log-variance (for VAE) or None (for AE).
+            combined_input: Original embeddings concatenated with loc and scale.
         """
         # Handle Input Shapes
         # We expect a 3D tensor: [Batch, Variables, Time]
@@ -150,16 +172,17 @@ class ChronosAnomalyModel(nn.Module):
 
         # Get Embeddings
         with torch.no_grad():
-            encoder_outputs, loc_scale, _, _ = self.model.encode(
+            encoder_outputs, loc_scale, _, num_context_patches = self.model.encode(
                 context=context_flat,
                 group_ids=group_ids 
             )
 
             last_hidden_state = encoder_outputs[0]  # Shape: [B*V, Num_Patches+Tokens, Dim]
-            # Filter [REG] Token
-            if getattr(self.model.chronos_config, "use_reg_token", False):
-                last_hidden_state = last_hidden_state[:, :-1, :]
             
+            # Filter [REG] Token and future patches
+            last_hidden_state = last_hidden_state[:, :num_context_patches, :]
+            
+            # Prepare loc and scale
             loc, scale = loc_scale
 
             # Reshape loc/scale to match sequence length
@@ -182,26 +205,26 @@ class ChronosAnomalyModel(nn.Module):
 
 class Chronos2AE(BaseDetector):
     def __init__(self, 
-                 ts_dim = 1,
                  slidingWindow=100,
                  head_type='vae',
                  latent_dim=32,
                  batch_size=32,
                  lr=1e-3,
-                 epochs=10,
+                 beta=1.0,
+                 epochs=50,
                  validation_size=0.2,
-                 patience=3,
+                 patience=5,
                  stride=1):
         super().__init__()
         self.cuda = True
         self.device = get_gpu(self.cuda)
 
-        self.ts_dim = ts_dim # Time Series dimension
         self.window_size = slidingWindow
         self.head_type = head_type
         self.latent_dim = latent_dim
         self.batch_size = batch_size
         self.lr = lr
+        self.beta = beta
         self.epochs = epochs
         self.validation_size = validation_size
         self.patience = patience
@@ -212,11 +235,15 @@ class Chronos2AE(BaseDetector):
         # Download Chronos-2 pipeline
         self.pipeline = BaseChronosPipeline.from_pretrained(
             "amazon/chronos-2", 
-            device_map=self.device, 
-            dtype=torch.float16
+            device_map=self.device
         )
 
     def fit(self, data, y=None):
+        # We use the first 80% of time steps for training and the subsequent 20%
+        # for validation, rather than shuffling windows randomly. Why not shufflying? 
+        # With sliding windows (stride=1), adjacent windows share ~99% of the same
+        # data points. Random shuffling would put Window A (t[0:100]) in Train and
+        # Window B (t[1:101]) in Val, causing a massive leakage. 
         split_idx = int((1-self.validation_size)*len(data)) # Using 80% training, 20% validation
         tsTrain = data[:split_idx]
         tsValid = data[split_idx:]
@@ -257,7 +284,7 @@ class Chronos2AE(BaseDetector):
                 
                 # Loss Calculation
                 # Loss was high because of how it was summed for each element in the batch.
-                loss = self.criterion(recon, target, mu, logvar, reduction='mean')
+                loss = self.criterion(recon, target, mu, logvar)
                 
                 optimizer.zero_grad()
                 loss.backward()
@@ -277,23 +304,21 @@ class Chronos2AE(BaseDetector):
                     for batch, _ in val_loader:
                         batch = batch.permute(0, 2, 1).to(self.device)
                         recon, mu, logvar, original_embeddings = self.model(batch)
-                        loss = self.criterion(recon, original_embeddings, mu, logvar, reduction='mean')
+                        loss = self.criterion(recon, original_embeddings, mu, logvar)
                         val_loss += loss.item()
                 avg_val_loss = val_loss / len(val_loader)
             else:
-                avg_val_loss = avg_loss
+                avg_val_loss = float('inf')
 
             self.model.train()
 
+            # implement early stopping
             self.early_stopping(avg_val_loss, self.model)
             if self.early_stopping.early_stop:
                 print("\tEarly stopping")
                 break
             
             epoch_pbar.set_description(f"Epoch {epoch+1} | Loss: {avg_loss:.4f} | Val: {avg_val_loss:.4f} | Early stopping: {self.early_stopping.counter}")
-        
-        # self.decision_scores_ = self.decision_function(data)
-        # self._process_decision_scores()
 
         return self
 
@@ -324,7 +349,7 @@ class Chronos2AE(BaseDetector):
         window_scores = np.concatenate(window_scores)
 
         # Reshape to [Num_Windows, Num_Vars]
-        # We know that for each window in the batch, we processed V variables sequentially.
+        # We know that for each window in the batch, we processed V variables sequentially
         # So the flat structure is [W0_V0, W0_V1, ..., W0_Vm, W1_V0, ...]
         if X.ndim > 1 and X.shape[1] > 1:
             num_vars = X.shape[1]
@@ -337,8 +362,8 @@ class Chronos2AE(BaseDetector):
             window_scores = window_scores.mean(axis=1)
 
         # Map window-level scores back to original time series points.
-        # Since we use a sliding window with stride=1, each point is covered by multiple windows.
-        # We aggregate these scores by averaging them.
+        # Since we use a sliding window with stride=1, each point is covered by multiple windows,
+        # we aggregate these scores by averaging them
         final_scores = np.zeros(len(X))
         counts = np.zeros(len(X))
         
@@ -348,32 +373,34 @@ class Chronos2AE(BaseDetector):
             end_idx = start_idx + self.window_size
             final_scores[start_idx: end_idx] += score
             counts[start_idx: end_idx] += 1
-        
         counts[counts == 0] = 1 # Avoid division by 0
+        
+        # Store final anomaly scores
         self.__anomaly_score = final_scores / counts
         return self.__anomaly_score
     
     def anomaly_score(self) -> np.ndarray:
         return self.__anomaly_score
 
-    def criterion(self, recon_x, x, mu=None, logvar=None, reduction='sum'):
-        """
-        Computes the loss.
-        If mu and logvar are provided, computes VAE loss (Recon + KL).
-        If they are None, computes AE loss (Recon only).
-        """
-        recon_loss = F.mse_loss(recon_x, x, reduction=reduction)
-        
+    def criterion(self, recon_x, x, mu=None, logvar=None, beta=None):
+        # x, recon_x shaope: [Batch, Seq_Len, Dim] -- NOTE: Seq_Len here is actually Num_Patches
+        # e.g. [32, 4, 770] for Batch=32, Num_Patches=4, Backbone_Dim(Chronos 2 default)=768 + 2 (loc and scale)
+
+        # Compute Reconstruction Loss
+        recon_per_element = F.mse_loss(recon_x, x, reduction='none') # shape: [32, 4, 770]
+        recon_per_vector = recon_per_element.sum(dim=-1)  # sum over last dim -> [32, 4]
+        recon_loss = recon_per_vector.mean()
+
+        # If mu and logvar are None, computes AE loss (Recon only).
         if mu is None or logvar is None:
             return recon_loss
-            
-        kld_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        if reduction == 'mean':
-            kld_loss = kld_loss / x.shape[0] # Average over batch
         
-        return recon_loss + kld_loss*0.0001
-    
-    def param_statistic(self, save_file):
-        model_stats = torchinfo.summary(self.model, self.input_shape, verbose=0)
-        with open(save_file, 'w') as f:
-            f.write(str(model_stats))
+        # Analytical KLD: -0.5 * sum(1 + log(var) - mu^2 - var)
+        kld_per_element = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp()) # shape: [32, 4, latent_dim(32 or 64)]
+        kld_per_vector = kld_per_element.sum(dim=-1)  # sum over last dim -> [32, 4]
+        kld_loss = kld_per_vector.mean()
+
+        if beta is None:
+            beta = self.beta
+
+        return recon_loss + (beta * kld_loss)

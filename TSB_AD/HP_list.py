@@ -86,8 +86,8 @@ Multi_algo_HP_dict = {
         'win_size': [50, 100, 150]
     },
     'Chronos2': {
-        'bin_size': [0.03, 0.05, 0.1],
-        'context_size': [0.2, 0.25, 0.3],
+        'bin_size': [0.03, 0.05, 0.1, 100, 150],
+        'context_size': [0.2, 0.25, 0.3, 100, 150],
         'error_metric': ['mae', 'mse']
     },
     'Chronos_2_AE': {
@@ -95,7 +95,12 @@ Multi_algo_HP_dict = {
         'head_type': ['ae', 'vae'],
         'latent_dim': [32, 64],
         'lr': [1e-3, 1e-4],
-        'epochs': [5, 10]
+        'conditional': {
+            'head_type': {
+                'vae': {'beta': [0.5, 1.0, 2.0]},
+                'ae': {}
+            }
+        }
     }
 }
 
@@ -125,8 +130,8 @@ Optimal_Multi_algo_HP_dict = {
     'TimesNet': {'win_size': 96, 'lr': 0.0001},
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50},
-    'Chronos2': {'bin_size': 0.03, 'context_size': 0.25},
-    'Chronos_2_AE': {'slidingWindow': 100, 'head_type': 'ae', 'latent_dim': 64, 'lr': 0.0001, 'epochs': 10},
+    'Chronos2': {'bin_size': 150, 'context_size': 150, 'error_metric': 'mse'},
+    'Chronos_2_AE': {'slidingWindow': 100, 'latent_dim': 64, 'lr': 0.001, 'head_type': 'vae', 'beta': 2.0},
 }
 
 
@@ -239,8 +244,11 @@ Uni_algo_HP_dict = {
         'win_size': [50, 100, 150]
     },
     'Chronos2': {
-        'bin_size': [0.03, 0.05, 0.1],
-        'context_size': [0.2, 0.25, 0.3]
+        'bin_size': [0.03, 0.05, 0.1, 100, 150],
+        'context_size': [0.2, 0.25, 0.3, 100, 150],
+
+        # Since VUS-PR is ranking based, MAE and MSE will give the same VUS-PR: they will return different values, but the order will be the same. (This is true only for uni-variate)
+        'error_metric': ['mae'] # We keep only 'mae' to reduce the HP combinations then, abs() should be easier to compute considering no backpropagation is needed
     },
     'TimesFM': {
         'win_size': [32, 64, 96]
@@ -256,7 +264,12 @@ Uni_algo_HP_dict = {
         'head_type': ['ae', 'vae'],
         'latent_dim': [32, 64],
         'lr': [1e-3, 1e-4],
-        'epochs': [5, 10]
+        'conditional': {
+            'head_type': {
+                'vae': {'beta': [0.5, 1.0, 2.0]},
+                'ae': {}
+            }
+        }
     }
 }
 
@@ -293,10 +306,10 @@ Optimal_Uni_algo_HP_dict = {
     'OFA': {'win_size': 50},
     'Lag_Llama': {'win_size': 96},
     'Chronos': {'win_size': 100},
-    'Chronos2': {'bin_size': 0.03, 'context_size': 0.25},
+    'Chronos2': {'bin_size': 150, 'context_size': 0.2, 'error_metric': 'mae'},
     'TimesFM': {'win_size': 96},
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},
     'M2N2': {},
-    'Chronos_2_AE': {'slidingWindow': 50, 'head_type': 'vae', 'latent_dim': 64, 'lr': 0.001, 'epochs': 10}
+    'Chronos_2_AE': {'slidingWindow': 50, 'latent_dim': 32, 'lr': 0.0001, 'head_type': 'vae', 'beta': 2.0}
 }

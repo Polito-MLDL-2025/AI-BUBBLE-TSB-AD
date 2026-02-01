@@ -14,7 +14,7 @@ from itertools import product
 from TSB_AD.evaluation.metrics import get_metrics
 from TSB_AD.utils.slidingWindows import find_length_rank
 from TSB_AD.model_wrapper import *
-from TSB_AD.HP_list import Multi_algo_HP_dict
+from TSB_AD.HP_list import Uni_algo_HP_dict
 
 BASE_FOLDER = "Runs"
 # seeding
@@ -34,8 +34,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='HP Tuning')
     
     parser.add_argument('AD_Name', type=str)
-    parser.add_argument('-d', '--datasets', type=str, default='Datasets/TSB-AD-M/')
-    parser.add_argument('-f', '--file_list', type=str, default='Datasets/File_List/TSB-AD-M-Tuning-filtered.csv')
+    parser.add_argument('-d', '--datasets', type=str, default='Datasets/TSB-AD-U/')
+    parser.add_argument('-f', '--file_list', type=str, default='Datasets/File_List/TSB-AD-U-Tuning-filtered.csv')
     parser.add_argument('-s', '--save', type=str, default=f'{BASE_FOLDER}/HP_tuning')
     
     args = parser.parse_args()
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     args = parse_arguments()
 
     # Creates the parameters combinations
-    Det_HP = Multi_algo_HP_dict[args.AD_Name]
+    Det_HP = Uni_algo_HP_dict[args.AD_Name]
     def build_combinations(det_hp):
         """Build parameter combinations supporting conditional mappings.
         Conditional format expected: {'conditional': {cond_param: {cond_value: {param: [vals]}}}}

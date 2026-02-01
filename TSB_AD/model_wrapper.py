@@ -38,9 +38,9 @@ def run_Semisupervise_AD(model_name, data_train, data_test, **kwargs):
         print(error_message)
         return error_message
 
-def run_Chronos_2_AE(data_train, data_test, slidingWindow=100, head_type='ae', latent_dim=32, epochs=10, n_jobs=1, **kwargs):
+def run_Chronos_2_AE(data_train, data_test, slidingWindow=100, head_type='ae', latent_dim=32, n_jobs=1, **kwargs):
     from .models.Chronos_2_AE import Chronos2AE
-    clf = Chronos2AE(slidingWindow=slidingWindow, head_type=head_type, latent_dim=latent_dim, epochs=epochs, **kwargs)
+    clf = Chronos2AE(slidingWindow=slidingWindow, head_type=head_type, latent_dim=latent_dim, **kwargs)
     clf.fit(data_train)
     score = clf.decision_function(data_test)
     return score.ravel()
