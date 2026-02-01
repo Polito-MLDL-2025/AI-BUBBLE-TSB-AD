@@ -4,11 +4,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from IPython.display import display
 
-#%%
-# Constants
-TSBAD_BENCHMARK_FILE = "benchmark_exp/benchmark_eval_results/uni_mergedTable_VUS-PR.csv"
-CHRONOS2_BENCHMARK_FILE = "Runs/Benchmark-Result/Chronos_2_AE-1769792307.csv"
-MODEL_NAME = "Chronos_2_AE"
+#%% Constants
+MODEL_NAME = "Chronos_2_AE" # 'Chronos_2_AE' or 'Chronos2'
+SETTING = "M" # 'U' or 'M'
+
+#%% File paths
+TSBAD_BENCHMARK_FILE = f"benchmark_exp/benchmark_eval_results/{'uni' if SETTING == 'U' else 'multi'}_mergedTable_VUS-PR.csv"
+CHRONOS2_BENCHMARK_FILE = f"benchmark_exp/benchmark_eval_results/{MODEL_NAME}-{SETTING}.csv"
 
 #%%
 def analyze_benchmarks(chronos2_benchmark_file, tsbad_benchmark_file, model_name):
